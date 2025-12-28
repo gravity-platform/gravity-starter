@@ -36,7 +36,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: sh -c "rm -rf node_modules package-lock.json && npm install && npm run build"
+    command: sh -c "rm -rf node_modules package-lock.json .turbo && npm install && npm run build"
     profiles:
       - build
   # ===========================================================================
