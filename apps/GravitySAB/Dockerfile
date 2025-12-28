@@ -33,7 +33,7 @@ ENV VITE_CONNECT_REGION=$VITE_CONNECT_REGION
 ENV VITE_APS_CUSTOMER_ENDPOINT=$VITE_APS_CUSTOMER_ENDPOINT
 ENV VITE_CLOUDFRONT_ENDPOINT=$VITE_CLOUDFRONT_ENDPOINT
 COPY --from=pruner /app/out/json/ .
-RUN npm install --ignore-scripts
+RUN npm install
 COPY --from=pruner /app/out/full/ .
 COPY tsconfig.base.json ./
 RUN npm run build -w @gravity-platform/gravity-client || true
