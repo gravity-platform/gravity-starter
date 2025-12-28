@@ -1,8 +1,15 @@
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
 RUN apk add --no-cache libc6-compat git
 WORKDIR /app
+RUN npm install -g turbo@^2
 
-# Build args for Vite
+# Prune stage - create minimal monorepo
+FROM base AS pruner
+COPY . .
+RUN turbo prune @gravity-platform/gravity-sab --docker
+
+# Build stage
+FROM base AS builder
 ARG VITE_API_URL
 ARG VITE_WEBSOCKET_URL
 ARG VITE_AUTH_ISSUER
@@ -14,32 +21,12 @@ ARG VITE_API_GATEWAY_ENDPOINT
 ARG VITE_CONNECT_REGION
 ARG VITE_APS_CUSTOMER_ENDPOINT
 ARG VITE_CLOUDFRONT_ENDPOINT
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
-ENV VITE_AUTH_ISSUER=$VITE_AUTH_ISSUER
-ENV VITE_AUTH_CLIENT_ID=$VITE_AUTH_CLIENT_ID
-ENV VITE_AUTH_AUDIENCE=$VITE_AUTH_AUDIENCE
-ENV VITE_CONTACT_FLOW_ID=$VITE_CONTACT_FLOW_ID
-ENV VITE_INSTANCE_ID=$VITE_INSTANCE_ID
-ENV VITE_API_GATEWAY_ENDPOINT=$VITE_API_GATEWAY_ENDPOINT
-ENV VITE_CONNECT_REGION=$VITE_CONNECT_REGION
-ENV VITE_APS_CUSTOMER_ENDPOINT=$VITE_APS_CUSTOMER_ENDPOINT
-ENV VITE_CLOUDFRONT_ENDPOINT=$VITE_CLOUDFRONT_ENDPOINT
-
-# Copy gravity-client package first (SAB depends on it)
-COPY packages/gravity-client/ ./packages/gravity-client/
-
-# Build gravity-client
-WORKDIR /app/packages/gravity-client
-RUN npm install
-RUN npm run build
-
-# Copy and build SAB
-WORKDIR /app/apps/GravitySAB
-COPY apps/GravitySAB/package.json ./
-RUN npm install
-COPY apps/GravitySAB/ ./
-RUN npm run build
+COPY --from=pruner /app/out/json/ .
+RUN npm install --ignore-scripts
+COPY --from=pruner /app/out/full/ .
+COPY tsconfig.base.json ./
+RUN npm run build -w @gravity-platform/gravity-client || true
+RUN npm run build -w @gravity-platform/gravity-sab
 
 # Production stage
 FROM nginx:alpine AS runner
