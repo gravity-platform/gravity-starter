@@ -118,7 +118,7 @@ export function GravityClient({
   onAction,
   LoadingComponent,
   children,
-}: GravityClientProps): JSX.Element {
+}: GravityClientProps): React.ReactElement {
   // Track current targetTriggerNode - updates when loadTemplate is called
   const [currentTargetTriggerNode, setCurrentTargetTriggerNode] = useState(session.targetTriggerNode);
 
