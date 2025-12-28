@@ -38,7 +38,7 @@ RUN npm install
 RUN npm install @rollup/rollup-linux-x64-musl @esbuild/linux-x64-musl --save-optional
 COPY --from=pruner /app/out/full/ .
 COPY tsconfig.base.json ./
-RUN npm run build -w @gravity-platform/gravity-client || true
+RUN npm run build -w @gravity-platform/gravity-client
 RUN npm run build -w @gravity-platform/gravity-sab
 
 # Production stage
