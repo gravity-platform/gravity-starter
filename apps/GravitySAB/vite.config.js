@@ -16,10 +16,6 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_API_URL": JSON.stringify(env.VITE_API_URL),
       "import.meta.env.VITE_WEBSOCKET_URL": JSON.stringify(env.VITE_WEBSOCKET_URL),
     },
-    esbuild: {
-      jsxFactory: "h",
-      jsxFragment: "Fragment",
-    },
     resolve: {
       alias: {
         react: "preact/compat",
