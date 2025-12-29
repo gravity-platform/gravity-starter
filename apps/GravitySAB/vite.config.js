@@ -25,8 +25,7 @@ export default defineConfig(({ mode }) => {
       dedupe: ["react", "react-dom", "zustand", "preact"],
     },
     optimizeDeps: {
-      include: ["zustand", "react-oidc-context", "oidc-client-ts"],
-      exclude: ["@gravity-platform/gravity-client"], // Don't pre-bundle - load fresh on rebuild
+      include: ["zustand", "react-oidc-context", "oidc-client-ts", "@gravity-platform/gravity-client"],
     },
     build: {
       commonjsOptions: {

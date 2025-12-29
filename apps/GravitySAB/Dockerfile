@@ -10,35 +10,11 @@ RUN turbo prune @gravity-platform/gravity-sab --docker
 
 # Build stage
 FROM base AS builder
-ARG VITE_API_URL
-ARG VITE_WEBSOCKET_URL
-ARG VITE_AUTH_ISSUER
-ARG VITE_AUTH_CLIENT_ID
-ARG VITE_AUTH_AUDIENCE
-ARG VITE_CONTACT_FLOW_ID
-ARG VITE_INSTANCE_ID
-ARG VITE_API_GATEWAY_ENDPOINT
-ARG VITE_CONNECT_REGION
-ARG VITE_APS_CUSTOMER_ENDPOINT
-ARG VITE_CLOUDFRONT_ENDPOINT
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_WEBSOCKET_URL=$VITE_WEBSOCKET_URL
-ENV VITE_AUTH_ISSUER=$VITE_AUTH_ISSUER
-ENV VITE_AUTH_CLIENT_ID=$VITE_AUTH_CLIENT_ID
-ENV VITE_AUTH_AUDIENCE=$VITE_AUTH_AUDIENCE
-ENV VITE_CONTACT_FLOW_ID=$VITE_CONTACT_FLOW_ID
-ENV VITE_INSTANCE_ID=$VITE_INSTANCE_ID
-ENV VITE_API_GATEWAY_ENDPOINT=$VITE_API_GATEWAY_ENDPOINT
-ENV VITE_CONNECT_REGION=$VITE_CONNECT_REGION
-ENV VITE_APS_CUSTOMER_ENDPOINT=$VITE_APS_CUSTOMER_ENDPOINT
-ENV VITE_CLOUDFRONT_ENDPOINT=$VITE_CLOUDFRONT_ENDPOINT
 COPY --from=pruner /app/out/json/ .
-RUN npm install
-# Fix npm bug #4828: explicitly install platform-specific native bindings for Alpine Linux (musl)
-RUN npm install @rollup/rollup-linux-x64-musl @esbuild/linux-x64-musl --save-optional
+RUN npm install --ignore-scripts
 COPY --from=pruner /app/out/full/ .
 COPY tsconfig.base.json ./
-RUN npm run build -w @gravity-platform/gravity-client
+RUN npm run build -w @gravity-platform/gravity-client || true
 RUN npm run build -w @gravity-platform/gravity-sab
 
 # Production stage

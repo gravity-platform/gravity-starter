@@ -4,6 +4,19 @@ import { useGravityAuth } from "@gravity-platform/gravity-client";
 export function LoginPage() {
   const { login } = useGravityAuth();
 
+  console.log("[LoginPage] login function:", login);
+  console.log("[LoginPage] login type:", typeof login);
+
+  const handleClick = () => {
+    console.log("[LoginPage] handleClick called");
+    if (login) {
+      console.log("[LoginPage] calling login()");
+      login();
+    } else {
+      console.error("[LoginPage] login is undefined!");
+    }
+  };
+
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden">
       {/* YouTube video background */}
@@ -36,7 +49,7 @@ export function LoginPage() {
 
         {/* Login button */}
         <button
-          onClick={login}
+          onClick={handleClick}
           className="w-full py-3 bg-white text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-2"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
