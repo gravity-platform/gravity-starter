@@ -249,6 +249,65 @@ services:
           memory: 64M
           cpus: "0.1"
 
+  # ===========================================================================
+  # OBSERVABILITY STACK (Logs, Traces, Metrics)
+  # ===========================================================================
+
+  loki:
+    image: ghcr.io/gravity-platform/gravity-loki:latest
+    container_name: gravity-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+    restart: unless-stopped
+
+  promtail:
+    image: ghcr.io/gravity-platform/gravity-promtail:latest
+    container_name: gravity-promtail
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+  tempo:
+    image: ghcr.io/gravity-platform/gravity-tempo:latest
+    container_name: gravity-tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - tempo_data:/var/tempo
+    restart: unless-stopped
+
+  prometheus:
+    image: ghcr.io/gravity-platform/gravity-prometheus:latest
+    container_name: gravity-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: ghcr.io/gravity-platform/gravity-grafana:latest
+    container_name: gravity-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - loki
+      - tempo
+      - prometheus
+    restart: unless-stopped
+
 volumes:
   redis_data:
   umap_models:
+  loki_data:
+  tempo_data:
+  prometheus_data:
+  grafana_data:
