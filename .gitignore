@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Exception: design-system dist contains generated component bundles served by API
+!packages/design-system/dist/
 .turbo/
 .env
 .DS_Store
