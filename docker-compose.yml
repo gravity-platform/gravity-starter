@@ -195,6 +195,7 @@ services:
       - REDIS_TLS=${REDIS_TLS}
       - REDIS_NAMESPACE=${REDIS_NAMESPACE}
       - SERVER_WS_URL=ws://server:4100/ws/gravity
+      - WORKFLOW_SERVICE_URL=http://workflow:4101
       - PACKAGES_PATH=/app/packages
     depends_on:
       redis:
