@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Markdown from "markdown-to-jsx";
 import { ChunkAnimator } from "./chunkAnimator";
+import { getSafeMarkdown } from "./markdownBuffer";
 import styles from "./AIResponse.module.css";
 
 // Custom link component that opens in new tab
@@ -29,23 +30,23 @@ interface AIResponseProps {
 export default function AIResponse(props: AIResponseProps) {
   const { progressText, text, questions, onQuestionClick, className, nodeId, isStreaming } = props;
 
-  // Initialize displayedText: empty for streaming, full text for completed responses
-  const [displayedText, setDisplayedText] = useState(() => {
-    // If not streaming and text exists, show immediately (completed response from history)
-    if (!props.isStreaming && props.text) {
-      return props.text;
-    }
-    return "";
-  });
+  // Use ref for displayed text to avoid React state race conditions
+  const displayedTextRef = useRef<string>(props.text || "");
+  const [, forceUpdate] = useState(0);
   const animatorRef = useRef<ChunkAnimator | null>(null);
-  const lastTextRef = useRef<string>("");
 
-  // Initialize animator once
+  // Initialize animator once with a callback that updates the ref and triggers render
   if (!animatorRef.current) {
     animatorRef.current = new ChunkAnimator({
-      charsPerSecond: 400,
-      onUpdate: setDisplayedText,
-      onTypingChange: () => {}, // Not used - we use isStreaming prop instead
+      charsPerSecond: 200,
+      onUpdate: (newText: string) => {
+        // Only update if text is longer (never go backwards)
+        if (newText.length >= displayedTextRef.current.length) {
+          displayedTextRef.current = newText;
+          forceUpdate((n) => n + 1);
+        }
+      },
+      onTypingChange: () => {},
     });
   }
 
@@ -58,22 +59,24 @@ export default function AIResponse(props: AIResponseProps) {
 
   // Handle text updates
   React.useLayoutEffect(() => {
-    if (!text) return;
-
-    // Not streaming = show full text immediately
+    // Not streaming - show full text immediately
     if (!isStreaming) {
       animatorRef.current?.stop(false);
-      setDisplayedText(text);
-      lastTextRef.current = text;
+      if (text) {
+        displayedTextRef.current = text;
+        forceUpdate((n) => n + 1);
+      }
       return;
     }
 
-    // Streaming: animate new text
-    if (text !== lastTextRef.current) {
+    // Streaming - animate new text
+    if (text) {
       animatorRef.current?.addChunk(text);
-      lastTextRef.current = text;
     }
   }, [text, isStreaming]);
+
+  // Get current displayed text
+  const displayedText = displayedTextRef.current;
 
   // Questions are always an array of strings
   const questionList = questions || [];
@@ -95,7 +98,7 @@ export default function AIResponse(props: AIResponseProps) {
       {/* Text - server sends accumulated chunks */}
       {displayedText && (
         <div className={`${styles.textContent} prose`}>
-          <Markdown options={markdownOptions}>{displayedText}</Markdown>
+          <Markdown options={markdownOptions}>{getSafeMarkdown(displayedText, !!isStreaming)}</Markdown>
           {/* Animated blinking cursor inline with text */}
           {isStreaming && <span className={styles.cursor} />}
         </div>

@@ -7,7 +7,7 @@ import { CardTemplate } from "../util/types";
 
 export function loadDefaultTemplate(): CardTemplate {
   return {
-    componentUrl: '/components/Card.js?v=1767157710997',
+    componentUrl: '/components/Card.js?v=1767160095055',
   };
 }
 
