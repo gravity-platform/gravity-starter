@@ -78,22 +78,42 @@ case $ACTION in
         ;;
         
     clean)
-        echo "🧹 Cleaning and rebuilding from scratch..."
+        echo "🧹 Cleaning caches and doing full rebuild..."
         echo ""
         find . -name 'node_modules' -type d -prune -exec rm -rf {} + 2>/dev/null || true
         find . -name '.turbo' -type d -prune -exec rm -rf {} + 2>/dev/null || true
         find . -name 'dist' -type d -prune -exec rm -rf {} + 2>/dev/null || true
         rm -f package-lock.json
-        echo "✅ Cleaned. Now run: ./scripts/deploy.sh"
+        echo "✅ Cleaned caches"
+        echo ""
+        
+        # Now run full deploy
+        echo "📦 Running full deployment..."
+        echo ""
+        
+        echo "1/4 Pulling platform images..."
+        docker compose pull
+        
+        echo ""
+        echo "2/4 Building packages..."
+        docker compose run --rm builder
+        
+        echo ""
+        echo "3/4 Building SAB..."
+        docker compose build sab
+        
+        echo ""
+        echo "4/4 Starting services..."
+        docker compose up -d
         ;;
         
     *)
         echo "Usage: ./scripts/deploy.sh [full|update|rebuild|clean]"
         echo ""
         echo "  full    - Full deploy (pull, build packages, build SAB, start)"
-        echo "  update  - Pull latest images and restart"
-        echo "  rebuild - Rebuild SAB only and restart"
-        echo "  clean   - Remove node_modules, .turbo, dist (run before full if issues)"
+        echo "  update  - Pull latest GHCR images and restart (no rebuild)"
+        echo "  rebuild - Rebuild SAB only and restart (does NOT rebuild packages)"
+        echo "  clean   - Clean caches (.turbo, dist) and do full rebuild"
         exit 1
         ;;
 esac
