@@ -1,10 +1,6 @@
 node_modules/
 .turbo/
+dist/
 .env
 .DS_Store
 *.log
-
-# Ignore dist/ everywhere EXCEPT design-system
-**/dist/
-!packages/design-system/dist/
-!packages/design-system/dist/**

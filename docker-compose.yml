@@ -36,7 +36,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: sh -c "npm install && npm run build"
+    command: sh -c "npm install && npm run gen:nodes && npm run build"
     profiles:
       - build
   # ===========================================================================
