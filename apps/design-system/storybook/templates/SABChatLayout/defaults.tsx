@@ -51,8 +51,8 @@ export const SABChatLayoutDefaults = {
     },
     {
       icon: "banknotes",
-      title: "Personal Loans",
-      question: "Tell me about personal loans",
+      title: "Make Transfer",
+      question: "Transfer money to kieran",
     },
     {
       icon: "newcard",

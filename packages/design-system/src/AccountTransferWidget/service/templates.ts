@@ -7,7 +7,7 @@ import { AccountTransferWidgetTemplate } from "../util/types";
 
 export function loadDefaultTemplate(): AccountTransferWidgetTemplate {
   return {
-    componentUrl: '/components/AccountTransferWidget.js?v=1767353780883',
+    componentUrl: '/components/AccountTransferWidget.js?v=1767371628836',
   };
 }
 

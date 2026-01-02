@@ -7,7 +7,7 @@ import { ChatInputTemplate } from "../util/types";
 
 export function loadDefaultTemplate(): ChatInputTemplate {
   return {
-    componentUrl: '/components/ChatInput.js?v=1767353782605',
+    componentUrl: '/components/ChatInput.js?v=1767371630512',
   };
 }
 
