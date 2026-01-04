@@ -210,6 +210,31 @@ services:
           memory: 1G
           cpus: "0.5"
 
+  # MCP Server - OpenAI Apps integration (lightweight - HTTP server)
+  mcp-server:
+    image: ghcr.io/gravity-platform/gravity-mcp-server:latest
+    ports:
+      - "4103:4103"
+    environment:
+      - NODE_ENV=production
+      - MCP_SERVICE_URL=${MCP_SERVICE_URL}
+      - WORKFLOW_SERVICE_URL=http://workflow:4101
+      - SERVER_WS_URL=${SERVER_WS_URL}
+      - AUTH_ISSUER=${AUTH_ISSUER}
+      - AUTH_AUDIENCE=${AUTH_AUDIENCE}
+    depends_on:
+      - server
+      - workflow
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
+
   # ===========================================================================
   # LAYER 2: CLIENT-SPECIFIC (Source or GHCR with runtime config)
   # ===========================================================================
