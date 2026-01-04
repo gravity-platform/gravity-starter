@@ -4,14 +4,14 @@ import { CreditCard, CardFamily } from "./types";
 
 // SAB Card Images - from https://www.sab.com/en/personal/compare-credit-cards/
 const CARD_IMAGES = {
-  emirates_infinite: "https://www.sab.com/content/dam/sabpws/common/cards-images/ek-visa-472X296.png",
-  alfursan_black: "https://www.sab.com/content/dam/sabpws/common/cards-images/alfursan-mastercard-472X296.png",
-  visa_signature: "https://www.sab.com/content/dam/sabpws/common/cards-images/visa-signature-472X296.png",
-  visa_cashback: "https://www.sab.com/content/dam/sabpws/common/cards-images/visa-cashback-472X296.png",
-  premier_mastercard: "https://www.sab.com/content/dam/sabpws/common/cards-images/premier-472X296.png",
-  advance_visa_platinum: "https://www.sab.com/content/dam/sabpws/common/cards-images/advance-visa-472X296.png",
-  visa_platinum: "https://www.sab.com/content/dam/sabpws/common/cards-images/visa-platinum-472X296.png",
-  platinum_mastercard: "https://www.sab.com/content/dam/sabpws/common/cards-images/platinum-mastercard-472X296.png",
+  emirates_infinite: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/ek-visa-472X296.png",
+  alfursan_black: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/alfursan-mastercard-472X296.png",
+  visa_signature: "https://res.cloudinary.com/sonik/image/upload/v1766077415/SAB/visa-signature-472X296.png",
+  visa_cashback: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/visa-cashback-472X296.png",
+  premier_mastercard: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/premier-472X296.png",
+  advance_visa_platinum: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/visa-platinum-472X296.png",
+  visa_platinum: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/visa-platinum-472X296.png",
+  platinum_mastercard: "https://res.cloudinary.com/sonik/image/upload/v1767547655/SAB/alfursan-mastercard-472X296.png",
 };
 
 export const SAB_CARDS: CreditCard[] = [
