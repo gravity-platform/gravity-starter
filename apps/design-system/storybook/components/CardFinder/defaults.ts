@@ -321,4 +321,4 @@ export const lowIncomeEligibilityState: Partial<CreditCardEligibilityState> = {
 };
 
 // Default hero image (same as AccountTransferWidget)
-export const DEFAULT_HERO_IMAGE = "https://www.sab.com/content/dam/sabpws/personal/c/visitor-id/visitor-id-936x400.jpg";
+export const DEFAULT_HERO_IMAGE = "https://res.cloudinary.com/sonik/image/upload/v1767543207/SAB/travel.jpg";

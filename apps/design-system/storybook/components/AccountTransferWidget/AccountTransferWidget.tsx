@@ -101,7 +101,7 @@ interface AccountTransferWidgetProps {
   updateData?: (updates: Record<string, any>) => void;
 }
 
-const DEFAULT_HERO_IMAGE = "https://www.sab.com/content/dam/sabpws/personal/c/visitor-id/visitor-id-936x400.jpg";
+const DEFAULT_HERO_IMAGE = "https://res.cloudinary.com/sonik/image/upload/v1767543207/SAB/travel.jpg";
 
 export default function AccountTransferWidget(props: AccountTransferWidgetProps) {
   const {
