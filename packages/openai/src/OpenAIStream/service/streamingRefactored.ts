@@ -134,9 +134,9 @@ export async function streamCompletionCallback(
     );
     logger.info(`🔍 [streamingRefactored] IMMEDIATELY after runConversationLoop - result.usage:`, result.usage);
 
-    // Step 7: Flush any remaining text that hasn't been emitted yet
-    // TextEmitter only emits every 100 chars, so the final partial chunk needs to be flushed
-    textEmitter.emitFinal(result.fullText);
+    // Step 7: DO NOT call textEmitter.emitFinal() here
+    // The executor handles the final emit with both 'chunk' and 'text' outputs
+    // Calling emitFinal here would emit only 'chunk' and cause a race condition
 
     // Step 8: Save token usage
     logger.info(`🔍 [streamingRefactored] result.usage:`, JSON.stringify(result.usage, null, 2));
@@ -178,9 +178,11 @@ export async function streamCompletionCallback(
       }`
     );
 
-    // Emit final output with complete text
+    // Build final output with complete text
     // Note: 'chunk' must be included for workflow routing to downstream nodes
     // mcpResult is emitted incrementally as each tool call completes
+    // IMPORTANT: Do NOT emit here - the executor handles the final output via return value
+    // Emitting here causes a race condition where isComplete:true is set before the emit is processed
     const finalOutput = {
       __outputs: {
         chunk: result.fullText, // Required for workflow routing
@@ -189,10 +191,9 @@ export async function streamCompletionCallback(
       },
     };
 
-    emit(finalOutput);
-    logger.info(`📤 Emitted final output: ${result.fullText.length} chars, ${finalUsage.total_tokens} tokens`);
+    logger.info(`✅ Stream completed: ${result.fullText.length} chars, ${finalUsage.total_tokens} tokens`);
 
-    // Return final output
+    // Return final output - executor will spread __outputs into state and set isComplete:true
     return finalOutput;
   } catch (error: any) {
     logger.error("❌ Failed to stream completion", {

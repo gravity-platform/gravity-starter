@@ -276,15 +276,29 @@ export const useAIContext = create<AIContextState>((set) => ({
 
   // Component Data Actions
   setComponentData: (key, data) => {
-    set((state) => ({
-      componentData: {
-        ...state.componentData,
-        [key]: {
-          ...(state.componentData[key] || {}),
-          ...data,
+    set((state) => {
+      const existing = state.componentData[key] || {};
+      const merged = { ...existing };
+
+      // Merge each prop, but for 'text' only accept longer values (streaming protection)
+      for (const [prop, value] of Object.entries(data)) {
+        if (prop === "text" && typeof value === "string" && typeof existing.text === "string") {
+          // Only update text if new value is longer (prevents late chunk overwrites)
+          if (value.length >= existing.text.length) {
+            merged[prop] = value;
+          }
+        } else {
+          merged[prop] = value;
+        }
+      }
+
+      return {
+        componentData: {
+          ...state.componentData,
+          [key]: merged,
         },
-      },
-    }));
+      };
+    });
   },
 
   updateComponentData: (key, updates) => {

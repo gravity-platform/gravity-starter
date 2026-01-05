@@ -3,7 +3,11 @@
  * Handles streaming chat completions from OpenAI
  * Emits text chunks as they arrive from OpenAI
  */
-import { getPlatformDependencies, type NodeExecutionContext, type ValidationResult } from "@gravity-platform/plugin-base";
+import {
+  getPlatformDependencies,
+  type NodeExecutionContext,
+  type ValidationResult,
+} from "@gravity-platform/plugin-base";
 import { streamCompletionCallback } from "../service";
 import { OpenAIStreamConfig, OpenAIStreamState } from "../util/types";
 
@@ -86,7 +90,6 @@ export default class OpenAIStreamExecutor extends CallbackNode {
 
       // Service streams, emits chunks, returns final output with __outputs
       // Pass executionContext so service can discover MCP tools
-      // Service handles all emits (incremental + final)
       const finalOutput = await streamCompletionCallback(
         resolvedConfig,
         credentialContext,
@@ -96,8 +99,12 @@ export default class OpenAIStreamExecutor extends CallbackNode {
         updatedState
       );
 
-      // CRITICAL: Return with isComplete: true to close the callback node
-      // Include final outputs in state for UI display
+      // CRITICAL: Emit the final output BEFORE returning with isComplete: true
+      // The return value becomes state but is NOT automatically emitted to the generator
+      // Without this emit, downstream nodes waiting for 'text' never receive the final output
+      emit(finalOutput);
+
+      // Return with isComplete: true to close the callback node
       return {
         ...updatedState,
         ...finalOutput.__outputs,
