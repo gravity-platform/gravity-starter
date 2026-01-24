@@ -12,6 +12,7 @@ import * as path from "path";
 // Import generated nodes
 import { AIResponseNode } from "./AIResponse/node";
 import { AccountTransferWidgetNode } from "./AccountTransferWidget/node";
+import { AudioPlayerNode } from "./AudioPlayer/node";
 import { BookingWidgetNode } from "./BookingWidget/node";
 import { CardNode } from "./Card/node";
 import { Card2Node } from "./Card2/node";
@@ -25,6 +26,7 @@ import { PDFViewerNode } from "./PDFViewer/node";
 const nodes = [
   AIResponseNode,
   AccountTransferWidgetNode,
+  AudioPlayerNode,
   BookingWidgetNode,
   CardNode,
   Card2Node,

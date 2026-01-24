@@ -67,7 +67,8 @@ export type ServerMessageType =
   | "COMPONENT_REMOVE"
   | "WORKFLOW_STATE"
   | "NODE_EXECUTION"
-  | "SUGGESTIONS_UPDATE";
+  | "SUGGESTIONS_UPDATE"
+  | "AI_ASSIST_RESULT";
 
 /**
  * Component initialization message
@@ -142,6 +143,21 @@ export interface SuggestionsUpdateMessage {
 }
 
 /**
+ * AI Assist result message
+ */
+export interface AIAssistResultMessage {
+  type: "AI_ASSIST_RESULT";
+  workflowId: string;
+  nodeId: string;
+  result: {
+    success: boolean;
+    suggestions?: Record<string, { suggestedValue: string; reasoning?: string }>;
+    reasoning?: string;
+    error?: string;
+  };
+}
+
+/**
  * Session ready message
  */
 export interface SessionReadyMessage {
@@ -173,7 +189,8 @@ export type ServerMessage =
   | ComponentRemoveMessage
   | WorkflowStateMessage
   | NodeExecutionMessage
-  | SuggestionsUpdateMessage;
+  | SuggestionsUpdateMessage
+  | AIAssistResultMessage;
 
 /**
  * User action types

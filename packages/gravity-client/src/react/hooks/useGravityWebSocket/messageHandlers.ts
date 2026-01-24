@@ -58,6 +58,14 @@ export function handleServerMessage(data: ServerMessage, ws: WebSocket, ctx: Mes
       handleSuggestionsUpdate(data as SuggestionsUpdateMessage);
       break;
 
+    case "AI_ASSIST_RESULT":
+      handleAIAssistResult(data as any, ctx);
+      break;
+
+    case "INPUT_SYNC_RESULT":
+      handleInputSyncResult(data as any, ctx);
+      break;
+
     default:
       // Ignore unknown message types (PONG, etc.)
       break;
@@ -89,7 +97,7 @@ function handleSessionReady(ws: WebSocket, ctx: MessageHandlerContext): void {
           workflowId: sessionParams.workflowId,
           targetTriggerNode: sessionParams.targetTriggerNode,
         },
-      })
+      }),
     );
   }
 }
@@ -175,6 +183,26 @@ function handleAudioState(msg: any, ctx: MessageHandlerContext): void {
 
   // Emit as event so templates can react
   ctx.setEvents((prev) => [...prev, { ...msg, id: `audioState_${msg.state}_${Date.now()}` }]);
+}
+
+/**
+ * AI Assist result - store result for frontend to pick up
+ */
+function handleAIAssistResult(msg: any, ctx: MessageHandlerContext): void {
+  console.log("[WS] 🤖 AI_ASSIST_RESULT received", msg);
+
+  // Emit as event so frontend can pick it up
+  ctx.setEvents((prev) => [...prev, { ...msg, id: `ai_assist_${msg.nodeId}_${Date.now()}` }]);
+}
+
+/**
+ * Input Sync result - store result for frontend to pick up
+ */
+function handleInputSyncResult(msg: any, ctx: MessageHandlerContext): void {
+  console.log("[WS] 🔄 INPUT_SYNC_RESULT received", msg);
+
+  // Emit as event so frontend can pick it up
+  ctx.setEvents((prev) => [...prev, { ...msg, id: msg.id || `input_sync_${Date.now()}` }]);
 }
 
 /**

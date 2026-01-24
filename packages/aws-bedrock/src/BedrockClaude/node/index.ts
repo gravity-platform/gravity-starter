@@ -78,6 +78,9 @@ export function createNodeDefinition(): EnhancedNodeDefinition {
             "System message prompt. Supports template syntax like {{input.fieldName}} to reference input data.",
           default: "",
           "ui:field": "template",
+          "ui:ai": {
+            editable: true,
+          },
         },
         prompt: {
           type: "string",
@@ -86,6 +89,9 @@ export function createNodeDefinition(): EnhancedNodeDefinition {
             "User message/prompt. Supports template syntax like {{input.fieldName}} to reference input data.",
           default: "",
           "ui:field": "template",
+          "ui:ai": {
+            editable: true,
+          },
         },
         includeImageUrl: {
           type: "boolean",
@@ -130,6 +136,9 @@ export function createNodeDefinition(): EnhancedNodeDefinition {
           "ui:field": "template",
           "ui:dependencies": {
             enableTools: true,
+          },
+          "ui:ai": {
+            editable: true,
           },
         },
       },

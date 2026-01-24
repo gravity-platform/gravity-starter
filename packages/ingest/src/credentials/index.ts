@@ -129,3 +129,21 @@ export const AbyssaleCredential = {
     },
   ],
 };
+
+// ElevenLabs Credential for text-to-speech
+export const ElevenLabsCredential = {
+  name: "elevenlabsCredential",
+  displayName: "ElevenLabs",
+  description: "ElevenLabs API credentials for high-quality text-to-speech",
+  properties: [
+    {
+      name: "apiKey",
+      displayName: "API Key",
+      type: "string" as const,
+      required: true,
+      secret: true,
+      description: "Your ElevenLabs API key from the dashboard",
+      placeholder: "Enter your ElevenLabs API key",
+    },
+  ],
+};

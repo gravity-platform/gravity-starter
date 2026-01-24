@@ -47,6 +47,10 @@ const plugin = createPlugin({
     const { AbyssaleNode } = await import("./Abyssale/node");
     api.registerNode(AbyssaleNode);
 
+    // Import and register ElevenLabs node
+    const { ElevenLabsNode } = await import("./ElevenLabs/node");
+    api.registerNode(ElevenLabsNode);
+
     // Import and register credentials
     const {
       SearchAPICredential,
@@ -55,6 +59,7 @@ const plugin = createPlugin({
       GoogleAPICredential,
       PlaidCredential,
       AbyssaleCredential,
+      ElevenLabsCredential,
     } = await import("./credentials");
     api.registerCredential(SearchAPICredential);
     api.registerCredential(ApifyCredential);
@@ -62,6 +67,7 @@ const plugin = createPlugin({
     api.registerCredential(GoogleAPICredential);
     api.registerCredential(PlaidCredential);
     api.registerCredential(AbyssaleCredential);
+    api.registerCredential(ElevenLabsCredential);
   },
 });
 

@@ -1,6 +1,6 @@
 import { PromiseNode, type NodeExecutionContext } from "@gravity-platform/plugin-base";
 import { AbyssaleConfig, AbyssaleExecutorOutput } from "../util/types";
-import { renderTemplate } from "../service/abyssaleService";
+import { renderTemplate, renderMultiPagePdf } from "../service/abyssaleService";
 
 const NODE_TYPE = "Abyssale";
 
@@ -12,7 +12,7 @@ export class AbyssaleExecutor extends PromiseNode {
   protected async executeNode(
     inputs: Record<string, any>,
     config: AbyssaleConfig,
-    context: NodeExecutionContext
+    context: NodeExecutionContext,
   ): Promise<AbyssaleExecutorOutput> {
     const logger = context.api?.createLogger?.("Abyssale") || this.logger;
 
@@ -26,8 +26,10 @@ export class AbyssaleExecutor extends PromiseNode {
     const credentialContext = this.buildCredentialContext(context);
 
     try {
-      // Call Abyssale API via service - pass context.api for credential fetching
-      const result = await renderTemplate(config, credentialContext, context.api);
+      // Route to appropriate API based on multiPage toggle
+      const result = config.multiPage
+        ? await renderMultiPagePdf(config, credentialContext, context.api)
+        : await renderTemplate(config, credentialContext, context.api);
 
       logger.info("Abyssale render completed", {
         templateId: result.template.id,

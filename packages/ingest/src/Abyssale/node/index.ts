@@ -37,6 +37,24 @@ function createNodeDefinition(): EnhancedNodeDefinition {
           title: "Template ID",
           description: "Abyssale template UUID (from your Abyssale dashboard)",
         },
+        multiPage: {
+          type: "boolean",
+          title: "Multi-Page PDF",
+          description: "Generate a multi-page PDF document",
+          default: false,
+          "ui:widget": "toggle",
+        },
+        pageCount: {
+          type: "number",
+          title: "Page Count",
+          description: "Number of pages in the template",
+          minimum: 1,
+          maximum: 50,
+          default: 2,
+          "ui:dependencies": {
+            multiPage: true,
+          },
+        },
         compressionLevel: {
           type: "number",
           title: "Compression Level",

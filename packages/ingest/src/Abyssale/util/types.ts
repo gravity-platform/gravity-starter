@@ -20,6 +20,8 @@ export interface AbyssaleConfig {
   formatName?: string;
   compressionLevel?: number;
   elements?: string | Record<string, AbyssaleElementOverride>;
+  multiPage?: boolean;
+  pageCount?: number;
 }
 
 export interface AbyssaleFile {

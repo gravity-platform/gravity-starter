@@ -64,6 +64,9 @@ export function createNodeDefinition(): EnhancedNodeDefinition {
             "Describe the image you want to generate. Supports template syntax like {{input.fieldName}} to reference input data.",
           default: "",
           "ui:field": "template",
+          "ui:ai": {
+            editable: true,
+          },
         },
         numberOfImages: {
           type: "number",

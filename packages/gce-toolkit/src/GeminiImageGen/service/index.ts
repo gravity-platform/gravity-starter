@@ -39,7 +39,7 @@ async function fetchImageAsBase64(url: string, log: any): Promise<{ base64: stri
 export async function generateImages(
   config: GeminiImageGenConfig,
   context: CredentialContext,
-  nodeLogger?: any
+  nodeLogger?: any,
 ): Promise<{ images: GeneratedImage[]; text?: string }> {
   // Use provided logger or fall back to base logger
   const log = nodeLogger || logger;
@@ -90,9 +90,23 @@ export async function generateImages(
       }
     }
 
+    // Build the final prompt - prepend reference image likeness instruction if image was added
+    let finalPrompt = config.prompt;
+    if (config.referenceImageUrl && parts.length > 0 && parts[0].inlineData) {
+      const referenceInstruction = `CRITICAL - REFERENCE IMAGE PROVIDED: The attached reference image shows the EXACT person who must appear in the generated image. You MUST:
+1. Use the SAME face from the reference image - identical facial structure, eyes, nose, mouth
+2. Match the person's body type and build from the reference
+3. This is the same individual - do NOT create a different person
+4. Apply all other style/scene specifications from the prompt below to THIS person
+
+Generate an image of the person from the reference photo in the following context:\n\n`;
+      finalPrompt = referenceInstruction + config.prompt;
+      log.info("Reference image likeness instruction prepended to prompt");
+    }
+
     // Add the main prompt
     parts.push({
-      text: config.prompt,
+      text: finalPrompt,
     });
 
     const contents = [
