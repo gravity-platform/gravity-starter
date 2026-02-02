@@ -114,7 +114,7 @@ function generateConfigSchema(argTypes: Record<string, any>, storyDefaults?: Rec
           opt
             .slice(1)
             .replace(/([A-Z])/g, " $1")
-            .trim()
+            .trim(),
       );
     }
     // Add template field for non-enum strings and objects

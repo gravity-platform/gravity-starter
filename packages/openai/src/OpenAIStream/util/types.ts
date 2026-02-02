@@ -12,7 +12,7 @@ export interface OpenAIStreamConfig {
   systemPrompt?: string;
   prompt: string;
   redisChannel: string;
-  history?: OpenAIMessage[];
+  // Note: history removed - GPT-5.2 uses previous_response_id for conversation state
 
   // GPT-5.2 Responses API parameters
   // GPT-5.2: "none", "low", "medium", "high", "xhigh"

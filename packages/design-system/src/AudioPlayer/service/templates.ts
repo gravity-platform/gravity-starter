@@ -7,7 +7,7 @@ import { AudioPlayerTemplate } from "../util/types";
 
 export function loadDefaultTemplate(): AudioPlayerTemplate {
   return {
-    componentUrl: '/components/AudioPlayer.js?v=1768555701198',
+    componentUrl: '/components/AudioPlayer.js?v=1769763224628',
   };
 }
 

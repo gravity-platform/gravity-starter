@@ -155,7 +155,7 @@ function handleWorkflowState(msg: WorkflowStateMessage, ctx: MessageHandlerConte
 /**
  * Node execution event - for GravityCanvas debug visualization
  *
- * Updates node states (running/completed/armed/error) in the canvas.
+ * Updates node states (running/completed/armed/error/focused) in the canvas.
  * Used by WorkflowSubscriptionProvider to show real-time node execution.
  */
 function handleNodeExecution(msg: NodeExecutionMessage, ctx: MessageHandlerContext): void {

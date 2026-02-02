@@ -21,14 +21,7 @@ export class TextEmitter {
   emitIfNeeded(fullText: string, newCharsCount: number): void {
     this.charsSinceLastEmit += newCharsCount;
 
-    // Log every call to debug
-    if (this.charsSinceLastEmit % 100 < newCharsCount) {
-      this.logger.info(`📊 [TextEmitter] charsSinceLastEmit: ${this.charsSinceLastEmit}, threshold: ${EMIT_INTERVAL}`);
-    }
-
     if (this.charsSinceLastEmit >= EMIT_INTERVAL) {
-      this.logger.info(`📦 EMITTING accumulated text (${this.charsSinceLastEmit} new chars, ${fullText.length} total)`);
-
       this.emit({
         __outputs: {
           chunk: fullText, // Send full accumulated text
@@ -43,18 +36,12 @@ export class TextEmitter {
    * Emit final text - ALWAYS emit the complete text regardless of charsSinceLastEmit
    */
   emitFinal(fullText: string): void {
-    this.logger.info(
-      `📦 [emitFinal] Called with charsSinceLastEmit=${this.charsSinceLastEmit}, fullTextLength=${
-        fullText?.length || 0
-      }`
-    );
     // ALWAYS emit final chunk with complete text
     this.emit({
       __outputs: {
-        chunk: fullText, // Send complete accumulated text
+        chunk: fullText,
       },
     });
-    this.logger.info(`📦 Emitted FINAL chunk (${this.charsSinceLastEmit} pending chars, ${fullText.length} total)`);
     this.charsSinceLastEmit = 0;
   }
 

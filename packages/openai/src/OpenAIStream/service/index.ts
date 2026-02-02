@@ -1,20 +1,35 @@
 /**
  * OpenAI Stream Service Exports (GPT-5 Responses API Only)
+ *
+ * NOTE: This is a backwards-compatibility wrapper.
+ * The canonical implementation lives in src/shared/openaiStream.
+ * All exports here re-export from the shared implementation.
  */
 
-// Export the main streaming function
-export { streamCompletionCallback } from "./streamingRefactored";
+// Re-export everything from the shared implementation
+export {
+  streamCompletionCallback,
+  discoverMCPTools,
+  executeToolCallsInParallel,
+  initializeOpenAIClient,
+  buildInputItems,
+  buildStreamParams,
+  runConversationLoop,
+  TextEmitter,
+  ReasoningEmitter,
+  processStreamChunk,
+  initializeStreamState,
+} from "../../shared/openaiStream";
 
-// Export modular components for advanced usage
-export { discoverMCPTools } from "./mcp/toolDiscovery";
-export { executeToolCallsInParallel } from "./mcp/toolExecution";
-export { initializeOpenAIClient, buildInputItems, buildStreamParams } from "./client/openaiClient";
-export { runConversationLoop } from "./conversation/conversationLoop";
-export { TextEmitter } from "./streaming/textEmitter";
-export { processStreamChunk, initializeStreamState } from "./streaming/streamProcessor";
-
-// Export types
-export type { MCPToolConfig } from "./mcp/toolDiscovery";
-export type { ToolCall, ToolResult } from "./mcp/toolExecution";
-export type { StreamState } from "./streaming/streamProcessor";
-export type { ConversationConfig, ConversationResult, ResponseInputItem } from "./conversation/conversationLoop";
+// Re-export types
+export type {
+  MCPToolConfig,
+  ToolCall,
+  ToolResult,
+  MCPTraceContext,
+  StreamState,
+  ConversationConfig,
+  ConversationResult,
+  ResponseInputItem,
+  MCPResult,
+} from "../../shared/openaiStream";

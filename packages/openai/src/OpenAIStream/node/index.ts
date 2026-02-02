@@ -122,13 +122,6 @@ const definition: EnhancedNodeDefinition = {
         default: "",
         "ui:field": "template",
       },
-      history: {
-        type: "object",
-        title: "History",
-        description: "Message history [] for context",
-        default: "",
-        "ui:field": "template",
-      },
       maxTokens: {
         type: "number",
         title: "Max Output Tokens",
@@ -148,7 +141,6 @@ const definition: EnhancedNodeDefinition = {
       "enableMarkdown",
       "systemPrompt",
       "prompt",
-      "history",
       "maxTokens",
     ],
   },

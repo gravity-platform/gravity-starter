@@ -1,0 +1,19 @@
+{
+  "name": "@gravityai-dev/skills",
+  "version": "1.0.0",
+  "description": "Skill library for Gravity Platform agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "peerDependencies": {}
+}

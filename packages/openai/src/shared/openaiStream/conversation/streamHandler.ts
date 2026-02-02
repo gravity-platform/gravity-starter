@@ -19,7 +19,7 @@ export interface StreamHandlerConfig {
 export async function processStream(
   stream: AsyncIterable<any>,
   previousState: StreamState,
-  config: StreamHandlerConfig
+  config: StreamHandlerConfig,
 ): Promise<StreamState> {
   const { textEmitter, reasoningEmitter, logger } = config;
 
@@ -31,14 +31,9 @@ export async function processStream(
   for await (const chunk of stream) {
     chunkCount++;
 
-    // Log first 10 chunks to debug streaming
-    if (chunkCount <= 10) {
-      logger.info(`📦 [CHUNK ${chunkCount}] Type: ${chunk.type}, hasText: ${chunk.delta ? "yes" : "no"}`);
-    }
-
-    // Log every 50th chunk to show progress
-    if (chunkCount % 50 === 0) {
-      logger.info(`📦 [CHUNK ${chunkCount}] Still streaming...`);
+    // Log every 100th chunk to show progress (reduced verbosity)
+    if (chunkCount % 100 === 0) {
+      logger.debug(`Streaming chunk ${chunkCount}...`);
     }
 
     const previousReasoning = streamState.reasoning;
@@ -60,6 +55,12 @@ export async function processStream(
   }
 
   logger.info(`✅ Processed ${chunkCount} chunks`);
+
+  // Emit any remaining text that didn't hit the threshold
+  // This ensures the final chunk of each iteration is always sent
+  if (streamState.fullText.length > 0) {
+    textEmitter.emitIfNeeded(streamState.fullText, 1000); // Force emit by exceeding threshold
+  }
 
   return streamState;
 }

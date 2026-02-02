@@ -1,0 +1,17 @@
+{
+  "name": "@gravity-platform/prompt-blocks",
+  "version": "1.0.0",
+  "description": "Reusable prompt snippets library",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

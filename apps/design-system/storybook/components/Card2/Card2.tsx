@@ -14,21 +14,23 @@ interface Card2Props {
 export default function Card2(props: Card2Props) {
   const obj: any = props.object ?? {};
 
-  const title = props.title || obj.title;
-  const description = props.description || obj.description;
+  // Use explicit empty string check - || treats "" as falsy, so we need to check for actual content
+  const title = (props.title && props.title.trim()) || obj.title;
+  const description = (props.description && props.description.trim()) || obj.description;
   const image =
-    props.image ||
+    (props.image && props.image.trim()) ||
     obj.image ||
     obj.metadata?.images?.[0] ||
     (obj.source_url?.match(/\.(jpg|jpeg|png|gif|webp|avif)$/i) ? obj.source_url : undefined);
-  const callToAction = props.callToAction || obj.callToAction || obj.metadata?.callToAction;
+  const callToAction =
+    (props.callToAction && props.callToAction.trim()) || obj.callToAction || obj.metadata?.callToAction;
 
   const handleClick = () => {
     console.log("[Card2] Button clicked, dispatching gravity:action", obj.title);
     window.dispatchEvent(
       new CustomEvent("gravity:action", {
         detail: { type: "click", data: { object: obj }, componentId: "Card2" },
-      })
+      }),
     );
   };
 

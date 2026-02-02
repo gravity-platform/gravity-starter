@@ -170,7 +170,7 @@ export interface SessionReadyMessage {
 export interface NodeExecutionMessage {
   type: "NODE_EXECUTION";
   nodeId: string;
-  status: "running" | "completed" | "error" | "armed";
+  status: "running" | "completed" | "error" | "armed" | "focused";
   workflowId: string;
   executionId: string;
   result?: Record<string, any>;

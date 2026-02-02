@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Markdown from "markdown-to-jsx";
 import { getSafeMarkdown } from "./markdownBuffer";
 import styles from "./AIResponse.module.css";
@@ -26,22 +26,64 @@ interface AIResponseProps {
   isStreaming?: boolean; // Show typing cursor when streaming
 }
 
+// Timeout in ms to stop thinking animation after no updates
+const THINKING_TIMEOUT_MS = 3000;
+
 export default function AIResponse(props: AIResponseProps) {
   const { progressText, text, questions, onQuestionClick, className, isStreaming } = props;
+
+  // Track if thinking animation should show (stops after timeout of no updates)
+  const [showThinkingDots, setShowThinkingDots] = useState(true);
+  const lastProgressTextRef = useRef(progressText);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset thinking dots when progressText changes, set timeout to hide them
+  useEffect(() => {
+    if (progressText !== lastProgressTextRef.current) {
+      // New progressText received - show dots and reset timeout
+      lastProgressTextRef.current = progressText;
+      setShowThinkingDots(true);
+
+      // Clear existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Set new timeout to hide dots after inactivity
+      timeoutRef.current = setTimeout(() => {
+        setShowThinkingDots(false);
+      }, THINKING_TIMEOUT_MS);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [progressText]);
+
+  // Hide thinking dots immediately when text starts streaming
+  useEffect(() => {
+    if (text && text.length > 0) {
+      setShowThinkingDots(false);
+    }
+  }, [text]);
 
   // SIMPLE: Just show the text prop directly. Server sends accumulated text.
   const questionList = questions || [];
 
   return (
     <div className={`${styles.container} ${className || ""}`}>
-      {/* Reasoning/Thinking - hide once text starts arriving */}
-      {progressText && !text && (
+      {/* Reasoning/Thinking - show when progressText exists, dots animate until timeout */}
+      {progressText && (
         <div className={styles.progress}>
-          <span className={styles.dotsContainer}>
-            <span className={styles.dot} />
-            <span className={styles.dot} />
-            <span className={styles.dot} />
-          </span>
+          {showThinkingDots && (
+            <span className={styles.dotsContainer}>
+              <span className={styles.dot} />
+              <span className={styles.dot} />
+              <span className={styles.dot} />
+            </span>
+          )}
           <Markdown options={markdownOptions}>{progressText}</Markdown>
         </div>
       )}

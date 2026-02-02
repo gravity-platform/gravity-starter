@@ -156,6 +156,27 @@ export function GravityClient({
   // Component loader
   const { loadComponent } = useComponentLoader(config.apiUrl);
 
+  // Flush OpenAI conversation on mount (start fresh when chat opens)
+  useEffect(() => {
+    const flushConversation = async () => {
+      try {
+        await fetch(`${config.apiUrl}/api/conversation/flush`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workflowId: session.workflowId,
+            conversationId: session.conversationId,
+            userId: session.userId,
+          }),
+        });
+        console.log("[GravityClient] Flushed OpenAI conversation on mount");
+      } catch (error) {
+        console.warn("[GravityClient] Failed to flush conversation:", error);
+      }
+    };
+    flushConversation();
+  }, []); // Only on mount
+
   // Get Zustand actions for component data and focus
   const zustandOpenFocus = useAIContext((s) => s.openFocus);
   const zustandSetComponentData = useAIContext((s) => s.setComponentData);
@@ -178,6 +199,7 @@ export function GravityClient({
   const focusState = useAIContext((s) => s.focusState);
   const openFocus = useAIContext((s) => s.openFocus);
   const closeFocus = useAIContext((s) => s.closeFocus);
+  const workflowRunId = useAIContext((s) => s.workflowRunId);
 
   // Listen for CustomEvents from streamed components (cross-boundary communication)
   useEffect(() => {
@@ -192,21 +214,57 @@ export function GravityClient({
     return () => window.removeEventListener("gravity:action", handleGravityAction);
   }, [zustandEmitAction, onAction]);
 
-  // Use ref for focusState in sendMessage to avoid recreating the callback
-  // when focusState changes (sendMessage reads current value at call time)
+  // Use refs for focusState and workflowRunId in sendMessage to avoid recreating the callback
+  // when these values change (sendMessage reads current values at call time)
   const focusStateRef = React.useRef(focusState);
   focusStateRef.current = focusState;
+  const workflowRunIdRef = React.useRef(workflowRunId);
+  workflowRunIdRef.current = workflowRunId;
 
   // Helper to send a message (adds to history + triggers workflow)
-  // FOCUS MODE: When focusState is set, routes to focused component's trigger with same chatId
-  // This is universal - all templates get focus routing automatically
-  // Uses ref for focusState to keep callback stable
+  // FOCUS MODE 2.0: When focusedComponentId is set, send directly to the focused node
+  // via /signal. Any node can receive signals - it's just a state machine event.
   const sendMessage = useCallback(
-    (message: string, options?: { targetTriggerNode?: string; chatId?: string }) => {
-      // Read current focusState from ref (not stale closure)
+    async (message: string, options?: { targetTriggerNode?: string; chatId?: string }) => {
+      // Read current values from refs (not stale closures)
       const currentFocusState = focusStateRef.current;
+      const currentWorkflowRunId = workflowRunIdRef.current;
 
-      // Focus Mode routing - if focused, use focusState values
+      // Check if we should use /signal (focused node + execution running)
+      const focusedNodeId = currentFocusState?.focusedComponentId;
+      const shouldUseSignal = focusedNodeId && currentWorkflowRunId;
+
+      if (shouldUseSignal) {
+        // Add user message to history
+        const effectiveChatId = options?.chatId || currentFocusState?.chatId;
+        historyManager.addUserMessage(message, {
+          workflowId: session.workflowId,
+          targetTriggerNode: currentFocusState?.targetTriggerNode || currentTargetTriggerNode,
+          chatId: effectiveChatId,
+        });
+
+        // Send CONTINUE signal directly to the focused node
+        try {
+          const response = await fetch(`${config.apiUrl}/api/signal`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              executionId: currentWorkflowRunId,
+              nodeId: focusedNodeId,
+              type: "CONTINUE",
+              inputs: { continue: message },
+            }),
+          });
+          if (!response.ok) {
+            console.error("[GravityClient] Signal failed:", await response.text());
+          }
+        } catch (error) {
+          console.error("[GravityClient] Signal error:", error);
+        }
+        return;
+      }
+
+      // Normal flow - route through trigger (starts new workflow or uses targetTriggerNode)
       const effectiveTargetTriggerNode =
         options?.targetTriggerNode || currentFocusState?.targetTriggerNode || currentTargetTriggerNode;
       const effectiveChatId = options?.chatId || currentFocusState?.chatId;
@@ -214,17 +272,17 @@ export function GravityClient({
       const userEntry = historyManager.addUserMessage(message, {
         workflowId: session.workflowId,
         targetTriggerNode: effectiveTargetTriggerNode,
-        chatId: effectiveChatId, // Use focus chatId if available
+        chatId: effectiveChatId,
       });
 
       sendUserAction("send_message", {
         message,
-        chatId: effectiveChatId || userEntry.chatId, // Prefer focus chatId
+        chatId: effectiveChatId || userEntry.chatId,
         workflowId: session.workflowId,
         targetTriggerNode: effectiveTargetTriggerNode,
       });
     },
-    [historyManager, sendUserAction, session.workflowId, currentTargetTriggerNode]
+    [historyManager, sendUserAction, session.workflowId, currentTargetTriggerNode, config.apiUrl],
   );
 
   // Helper to emit action (for cross-boundary communication from templates)
@@ -232,7 +290,7 @@ export function GravityClient({
     window.dispatchEvent(
       new CustomEvent("gravity:action", {
         detail: { type, data, componentId: "template" },
-      })
+      }),
     );
   }, []);
 
@@ -249,7 +307,7 @@ export function GravityClient({
       setStreamingState("idle");
       wsLoadTemplate(targetTriggerNode, options);
     },
-    [wsLoadTemplate, setStreamingState]
+    [wsLoadTemplate, setStreamingState],
   );
 
   // Helper to send agent messages through server pipeline
@@ -266,7 +324,7 @@ export function GravityClient({
     }) => {
       wsSendAgentMessage(data);
     },
-    [wsSendAgentMessage]
+    [wsSendAgentMessage],
   );
 
   // Notify parent when ready
@@ -288,7 +346,7 @@ export function GravityClient({
       entries: historyManager.history,
       getResponses: historyManager.getResponses,
     }),
-    [historyManager.history, historyManager.getResponses]
+    [historyManager.history, historyManager.getResponses],
   );
 
   // Session context - ONLY changes when session params change
@@ -297,7 +355,7 @@ export function GravityClient({
       ...session,
       targetTriggerNode: currentTargetTriggerNode,
     }),
-    [session, currentTargetTriggerNode]
+    [session, currentTargetTriggerNode],
   );
 
   // Actions context - stable functions for sending messages
@@ -309,7 +367,7 @@ export function GravityClient({
       sendVoiceCallMessage: wsSendVoiceCallMessage,
       emitAction,
     }),
-    [sendMessage, loadTemplate, sendAgentMessage, wsSendVoiceCallMessage, emitAction]
+    [sendMessage, loadTemplate, sendAgentMessage, wsSendVoiceCallMessage, emitAction],
   );
 
   // Build client context using stable sub-objects
@@ -327,7 +385,7 @@ export function GravityClient({
       openFocus,
       closeFocus,
     }),
-    [actionsContext, historyContext, sessionContext, suggestions, focusState, openFocus, closeFocus]
+    [actionsContext, historyContext, sessionContext, suggestions, focusState, openFocus, closeFocus],
   );
 
   // If children render prop provided, use it

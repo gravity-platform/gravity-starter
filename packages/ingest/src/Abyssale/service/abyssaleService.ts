@@ -310,8 +310,8 @@ export async function renderMultiPagePdf(
 
   console.log(`[Abyssale] Generating multi-page PDF with ${Object.keys(pagesPayload).length} pages`);
 
-  // Call multi-page PDF endpoint (async) - uses /async/ prefix like other async endpoints
-  const response = await fetch(`${ABYSSALE_API_BASE}/async/multi-pages-pdf/${templateId}/generate`, {
+  // Multi-page PDFs use /async/banner-builder/ endpoint with { pages: {...} }
+  const response = await fetch(`${ABYSSALE_API_BASE}/async/banner-builder/${templateId}/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -326,16 +326,20 @@ export async function renderMultiPagePdf(
   }
 
   const result = await response.json();
-  const generationRequestId = result.generation_request_id;
 
-  if (!generationRequestId) {
-    throw new Error("No generation_request_id returned from multi-page endpoint");
+  // Multi-page printer templates return generation_request_id for async polling
+  if (result.generation_request_id) {
+    console.log(`[Abyssale] Multi-page generation started (async), request ID: ${result.generation_request_id}`);
+    return await pollForCompletion(result.generation_request_id, templateId, credentials.apiKey);
   }
 
-  console.log(`[Abyssale] Multi-page generation started, request ID: ${generationRequestId}`);
+  // If sync response (has file directly), return it
+  if (result.file) {
+    console.log(`[Abyssale] Multi-page generation completed (sync)`);
+    return result as AbyssaleOutput;
+  }
 
-  // Poll for completion
-  return await pollForCompletion(generationRequestId, templateId, credentials.apiKey);
+  throw new Error("Unexpected response from Abyssale: no generation_request_id or file");
 }
 
 /**

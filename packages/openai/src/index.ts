@@ -20,6 +20,7 @@ const plugin = createPlugin({
     const { OpenAINode } = await import("./OpenAI/node");
     const { OpenAIServiceNode } = await import("./OpenAIService/node");
     const { OpenAIStreamNode } = await import("./OpenAIStream/node");
+    const { ChatGPTAgentNode } = await import("./ChatGPTAgent/node");
     const { OpenAIEmbeddingServiceNode } = await import("./OpenAIEmbeddingService/node");
     const { OpenAIStructuredOutputNode } = await import("./OpenAIStructuredOutput/node");
 
@@ -30,6 +31,7 @@ const plugin = createPlugin({
     api.registerNode(OpenAINode);
     api.registerNode(OpenAIServiceNode);
     api.registerNode(OpenAIStreamNode);
+    api.registerNode(ChatGPTAgentNode);
     api.registerNode(OpenAIEmbeddingServiceNode);
     api.registerNode(OpenAIStructuredOutputNode);
 

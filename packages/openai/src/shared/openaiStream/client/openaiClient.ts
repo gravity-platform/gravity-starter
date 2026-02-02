@@ -4,8 +4,8 @@
  */
 
 import OpenAI from "openai";
-import { OpenAIStreamConfig, OpenAICredentials } from "../../util/types";
-import { ResponseInputItem } from "../conversation/conversationLoop";
+import { OpenAIStreamConfig, OpenAICredentials } from "../../../OpenAIStream/util/types";
+import { ResponseInputItem } from "../conversation/types";
 
 /**
  * Initialize OpenAI client with credentials
@@ -79,18 +79,8 @@ export function buildInputItems(config: OpenAIStreamConfig): ResponseInputItem[]
     });
   }
 
-  // Add conversation history if provided (convert to input items)
-  if (config.history && Array.isArray(config.history)) {
-    for (const msg of config.history) {
-      inputItems.push({
-        type: "message",
-        role: msg.role as "user" | "assistant" | "system",
-        content: typeof msg.content === "string" ? msg.content : msg.content,
-      });
-    }
-  }
-
-  // Add the current prompt as the final user message
+  // Add the current prompt as the user message
+  // Note: history removed - GPT-5.2 uses previous_response_id for conversation state
   inputItems.push({
     type: "message",
     role: "user",
@@ -121,7 +111,6 @@ export function buildStreamParams(config: OpenAIStreamConfig, inputItems: Respon
   const streamParams: any = {
     model: config.model,
     stream: true,
-    input: nonSystemItems, // Pass user/assistant messages as array
   };
 
   // Add instructions (system message) as separate parameter
@@ -129,14 +118,14 @@ export function buildStreamParams(config: OpenAIStreamConfig, inputItems: Respon
     streamParams.instructions = instructions;
   }
 
-  // If we have conversation history, we should ideally use:
-  // 1. conversation parameter with a conversation ID
-  // 2. previous_response_id to continue from last response
+  // Pass user message as input
+  streamParams.input = nonSystemItems;
+
+  // Conversation state: use previous_response_id for multi-turn
+  // OpenAI stores context server-side (30 day TTL)
   if (config.conversationId) {
-    // Use conversation API for proper context management
     streamParams.conversation = config.conversationId;
   } else if (config.previousResponseId) {
-    // Use previous response ID to continue conversation
     streamParams.previous_response_id = config.previousResponseId;
   }
 

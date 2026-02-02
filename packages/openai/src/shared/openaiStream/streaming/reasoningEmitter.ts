@@ -28,10 +28,6 @@ export class ReasoningEmitter {
         },
       });
 
-      this.logger.info(
-        `🧠 Emitted accumulated reasoning (${this.charsSinceLastEmit} new chars, ${fullReasoning.length} total)`
-      );
-
       this.charsSinceLastEmit = 0;
     }
   }
@@ -46,9 +42,6 @@ export class ReasoningEmitter {
           reasoning: fullReasoning, // Send complete accumulated reasoning
         },
       });
-      this.logger.info(
-        `🧠 Emitted final accumulated reasoning (${this.charsSinceLastEmit} new chars, ${fullReasoning.length} total)`
-      );
       this.charsSinceLastEmit = 0;
     }
   }

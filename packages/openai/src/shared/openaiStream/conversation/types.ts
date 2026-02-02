@@ -23,9 +23,14 @@ export interface ConversationConfig {
   emit: (output: any) => void;
   emitMcpResult: (result: { name: string; arguments: any; result: any }) => void;
   logger: any;
-  maxIterations?: number;
+  // Loop safety
+  maxIterations?: number; // Hard cap on tool-call iterations (default: 10)
+  timeoutMs?: number; // Timeout for entire conversation loop (default: 2 minutes)
   traceContext?: MCPTraceContext;
   api?: any;
+  // For multi-turn conversation persistence across executions
+  chatId?: string; // Stable anchor for conversation (from Focus Mode)
+  previousResponseId?: string; // Resume from previous response
 }
 
 export interface ConversationResult {
@@ -34,6 +39,7 @@ export interface ConversationResult {
   usage: any;
   finishReason: string | null;
   toolCalls?: Array<{ name: string; arguments: any; result?: string }>;
+  responseId?: string; // For multi-turn: store this to resume conversation
 }
 
 export interface MCPResult {

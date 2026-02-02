@@ -44,9 +44,9 @@
     "access": "public"
   },
   "dependencies": {
+    "@ricky0123/vad-web": "^0.0.27",
     "oauth4webapi": "^3.1.4",
-    "zustand": "^4.4.0",
-    "@ricky0123/vad-web": "^0.0.27"
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "react": "^18.2.0",

@@ -20,7 +20,7 @@ export function ChatPage() {
       workflowId: workflowConfig.workflowId,
       targetTriggerNode: workflowConfig.targetTriggerNode,
     }),
-    [userId]
+    [userId],
   );
 
   const config = useMemo(() => ({ apiUrl, wsUrl, getAccessToken }), [getAccessToken]);

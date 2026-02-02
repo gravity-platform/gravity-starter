@@ -11,7 +11,12 @@
  * - Text Emitter: Handles real-time text emission
  */
 
-import { OpenAIStreamConfig, StreamUsageStats, OpenAIStreamState, OpenAIStreamFinalOutput } from "../util/types";
+import {
+  OpenAIStreamConfig,
+  StreamUsageStats,
+  OpenAIStreamState,
+  OpenAIStreamFinalOutput,
+} from "../../OpenAIStream/util/types";
 
 // Import modular components
 import { discoverMCPTools } from "./mcp/toolDiscovery";
@@ -33,31 +38,40 @@ export async function streamCompletionCallback(
   logger: any,
   executionContext: NodeExecutionContext,
   emit: (output: any) => void,
-  state: OpenAIStreamState
+  state: OpenAIStreamState,
 ): Promise<OpenAIStreamFinalOutput> {
   try {
-    logger.info("\n\n🚀🚀🚀 [STREAM START] streamCompletionCallback CALLED");
-    logger.info("🚀 [streamCompletionCallback] Starting OpenAI stream");
-    logger.info("🔍 CONTEXT CHECK:", {
-      hasExecContext: !!executionContext,
-      workflowId: executionContext?.workflow?.id,
-    });
+    logger.info("🚀 Starting OpenAI stream");
 
-    // Step 1: Discover MCP tools using user query for semantic relevance
-    // Use message from workflow variables (from production input or testInputs)
-    const mcpQuery = executionContext?.workflow?.variables?.message;
-    logger.info("🔍🔍🔍 [BEFORE MCP DISCOVERY] About to call discoverMCPTools");
-    const mcpConfig = await discoverMCPTools(executionContext, logger, mcpQuery, executionContext?.api);
-    logger.info("✅✅✅ [AFTER MCP DISCOVERY] discoverMCPTools returned:", {
-      hasConfig: !!mcpConfig,
-      toolCount: mcpConfig?.tools?.length || 0,
-    });
+    // Step 0: Get conversation state from Redis (for multi-turn with 30-min TTL)
+    let previousResponseId: string | undefined;
+    const redis = executionContext?.api?.getRedisClient?.();
+    const pubCtx = executionContext?.publishingContext;
+    const convKey =
+      pubCtx?.conversationId && pubCtx?.userId && executionContext?.workflow?.id
+        ? { workflowId: executionContext.workflow.id, conversationId: pubCtx.conversationId, userId: pubCtx.userId }
+        : null;
+
+    if (redis && convKey) {
+      try {
+        const cached = await redis.get(`openai:conv:${convKey.workflowId}:${convKey.conversationId}:${convKey.userId}`);
+        if (cached) {
+          const convState = JSON.parse(cached);
+          previousResponseId = convState.lastResponseId;
+          config.previousResponseId = previousResponseId;
+          logger.info(`📜 Resuming conversation from ${previousResponseId?.slice(0, 20)}...`);
+        }
+      } catch (e) {
+        logger.debug(`No previous conversation state: ${(e as Error).message}`);
+      }
+    }
+
+    // Step 1: Discover core MCPs (findIntent, discoverRelated, readSkill, readSkillFile)
+    // Workflow MCPs are discovered at runtime via findIntent/discoverRelated
+    const mcpConfig = await discoverMCPTools(executionContext, logger, undefined, executionContext?.api);
     if (mcpConfig) {
       config.tools = mcpConfig.tools;
-      config.mcpService = mcpConfig.mcpService;
-      logger.info(`🛠️🛠️🛠️ [TOOLS CONFIGURED] Including ${mcpConfig.tools.length} tools in OpenAI request`);
-    } else {
-      logger.warn("❌❌❌ [NO TOOLS] mcpConfig is null - NO TOOLS WILL BE PASSED TO LLM");
+      (config as any).mcpService = mcpConfig.mcpService;
     }
 
     // Step 2: Initialize OpenAI client
@@ -65,20 +79,8 @@ export async function streamCompletionCallback(
 
     // Step 3: Build input items and stream parameters
     const inputItems = buildInputItems(config);
-    logger.info("📝 Built input items:", {
-      itemCount: inputItems.length,
-      items: JSON.stringify(inputItems, null, 2),
-    });
 
-    const streamParams = buildStreamParams(config, inputItems, config.tools);
-    logger.info("📋📋📋 [STREAM PARAMS] Full params being sent to OpenAI:", {
-      model: streamParams.model,
-      hasTools: !!streamParams.tools,
-      toolCount: streamParams.tools?.length || 0,
-      tool_choice: streamParams.tool_choice,
-      parallel_tool_calls: streamParams.parallel_tool_calls,
-      tools: streamParams.tools?.map((t: any) => ({ name: t.name, type: t.type })),
-    });
+    const streamParams = buildStreamParams(config, inputItems, (config as any).tools);
 
     // Step 4: Initialize text and reasoning emitters
     const textEmitter = new TextEmitter(emit, logger);
@@ -92,7 +94,7 @@ export async function streamCompletionCallback(
 
     // Step 6: Run conversation loop with tool calling support
     logger.info("🤖🤖🤖 [STARTING LLM] About to call runConversationLoop with tools:", {
-      toolCount: config.tools?.length || 0,
+      toolCount: (config as any).tools?.length || 0,
     });
 
     // Build trace context for MCP telemetry
@@ -114,7 +116,7 @@ export async function streamCompletionCallback(
       openai,
       streamParams,
       inputItems,
-      mcpService: config.mcpService,
+      mcpService: (config as any).mcpService,
       textEmitter,
       reasoningEmitter,
       emit,
@@ -130,7 +132,7 @@ export async function streamCompletionCallback(
     logger.info(`🔍 [streamingRefactored] fullText preview: "${result.fullText?.substring(0, 100)}..."`);
     logger.info(
       `🔍 [streamingRefactored] IMMEDIATELY after runConversationLoop - result.usage keys:`,
-      Object.keys(result.usage || {})
+      Object.keys(result.usage || {}),
     );
     logger.info(`🔍 [streamingRefactored] IMMEDIATELY after runConversationLoop - result.usage:`, result.usage);
 
@@ -175,7 +177,7 @@ export async function streamCompletionCallback(
     logger.info(
       `✅ Stream completed: ${result.fullText.length} chars${
         result.reasoning ? `, ${result.reasoning.length} reasoning chars` : ""
-      }`
+      }`,
     );
 
     // Build final output with complete text
@@ -192,6 +194,21 @@ export async function streamCompletionCallback(
     };
 
     logger.info(`✅ Stream completed: ${result.fullText.length} chars, ${finalUsage.total_tokens} tokens`);
+
+    // Step 10: Save conversation state to Redis (30-min TTL, sliding expiration)
+    if (redis && convKey && result.responseId) {
+      try {
+        const convState = { lastResponseId: result.responseId, updatedAt: Date.now() };
+        await redis.setex(
+          `openai:conv:${convKey.workflowId}:${convKey.conversationId}:${convKey.userId}`,
+          30 * 60, // 30 minutes TTL
+          JSON.stringify(convState),
+        );
+        logger.debug(`💾 Saved conversation state: ${result.responseId.slice(0, 20)}...`);
+      } catch (e) {
+        logger.warn(`Failed to save conversation state: ${(e as Error).message}`);
+      }
+    }
 
     // Return final output - executor will spread __outputs into state and set isComplete:true
     return finalOutput;
