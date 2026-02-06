@@ -101,7 +101,7 @@ docker ps | grep redis
 ## Step 6: Configure Environment
 
 ```bash
-cp ansible/files/.env.example .env
+cp .env.example .env
 ```
 
 Edit `.env` with credentials from your admin:
