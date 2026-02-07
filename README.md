@@ -5,28 +5,29 @@ Build custom AI experiences powered by the Gravity Platform.
 ## Quick Start
 
 ```bash
-# 1. Install the Gravity CLI
+# 1. Setup (configure env, login to registry, pull images)
+./gravity init
+
+# 2. Start the platform
+./gravity start
+
+# 3. Install dev dependencies (for building custom nodes & components)
 npm install
-
-# 2. Run the setup wizard
-npx gravity init
-
-# 3. Start the platform
-npx gravity start
 ```
 
-## CLI Commands
+## Platform Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npx gravity init` | Interactive setup wizard |
-| `npx gravity start` | Start the platform |
-| `npx gravity stop` | Stop the platform |
-| `npx gravity status` | Show service health |
-| `npx gravity logs` | Stream logs |
-| `npx gravity update` | Pull latest images and restart |
-| `npx gravity doctor` | Diagnose issues |
-| `npx gravity dev` | Start dev mode |
+| `./gravity init` | Interactive setup wizard |
+| `./gravity start` | Start the platform |
+| `./gravity stop` | Stop the platform |
+| `./gravity status` | Show service health |
+| `./gravity logs` | Stream logs (`./gravity logs server` for one service) |
+| `./gravity update` | Pull latest images and restart |
+| `./gravity doctor` | Diagnose issues |
+| `./gravity dev` | Install deps, generate nodes, start dev environment |
+| `./gravity build` | Build all + gen:nodes + restart (`./gravity build <pkg>` for one) |
 
 ## Access
 
@@ -36,18 +37,28 @@ npx gravity start
 
 ## Development
 
-### Creating Custom Nodes
+### Custom Nodes
 
-1. Create a new package in `packages/my-custom-node/`
-2. Build: `npm run build -w @gravity-platform/my-custom-node`
-3. Restart: `docker compose restart node-service workflow`
+```bash
+# Create a new package in packages/my-custom-node/
+# ... write your node code ...
 
-### Creating UI Components
+# Build and restart
+./gravity build @gravity-platform/my-custom-node
+```
 
-1. Create component in `apps/design-system/storybook/components/`
-2. Generate nodes: `npm run gen:nodes`
-3. Restart: `docker compose restart node-service`
+See `docs/nodes/` for full node development guide.
+
+### UI Components (Design System)
+
+```bash
+# Edit components in apps/design-system/storybook/
+# Regenerate workflow nodes + restart
+./gravity gendesign
+```
+
+See `docs/onboarding/05-components-and-templates.md` for details.
 
 ## Deployment (Production)
 
-See `ansible/` for production deployment playbooks.
+See `ansible/` and `docs/runbooks/` for production deployment.

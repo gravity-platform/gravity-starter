@@ -18,6 +18,6 @@ Welcome to Gravity! Complete these challenges to learn the platform.
 
 ## Prerequisites
 
-- Docker & Docker Compose
-- GitHub account with PAT (read:packages scope)
-- Node.js 18+
+- Docker 24+ (with Docker Desktop on Mac)
+- Node.js 20+
+- DOCR Token from your Gravity admin

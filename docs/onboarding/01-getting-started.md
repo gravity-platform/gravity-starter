@@ -13,7 +13,6 @@ As a developer, you work with **your organization's fork** of gravity-starter:
 | Your org's fork of `gravity-starter`   | `GravityPlatform` (core platform) |
 | Custom nodes in `packages/`            | Core service source code          |
 | UI components in `apps/design-system/` | Server, Workflow, Canvas source   |
-| Client app in `apps/GravitySAB/`       | Node-service internals            |
 | Docker images (pre-built binaries)     | Platform IP                       |
 
 **The core platform runs as Docker images.** You never see or modify the source code — you build ON TOP of it.
@@ -42,6 +41,7 @@ Ask your Gravity admin for:
 2. **DOCR Token** — for pulling Docker images (DigitalOcean Container Registry)
 3. **DATABASE_URL** — PostgreSQL connection string
 4. **Redis credentials** — host, port, password
+5. **Auth credentials** — AUTH_ISSUER, AUTH_CLIENT_ID, AUTH_AUDIENCE
 
 ---
 
@@ -63,103 +63,49 @@ git clone https://YOUR_USERNAME:YOUR_GITHUB_TOKEN@github.com/YOUR_ORG/gravity-st
 
 ---
 
-## Step 3: Get Registry Token
+## Step 3: Run the Setup Wizard
 
-Ask your Gravity admin for a **DigitalOcean Container Registry token**.
+The `./gravity` CLI handles everything — Docker login, environment config, and image pulling:
 
-This token lets you pull the pre-built platform images. You don't need GitHub access to the platform code.
+```bash
+cd ~/gravity
+./gravity init
+```
+
+The wizard will ask for your DOCR token, database URL, Redis, and auth credentials. It generates your `.env` file, logs into the registry, and pulls all platform images.
 
 ---
 
-## Step 4: Login to Docker Registry
+## Step 4: Start the Platform
 
 ```bash
-# Use the DOCR token from your admin
-echo "dop_v1_xxxxx" | docker login registry.digitalocean.com -u dop_v1_xxxxx --password-stdin
+./gravity start
 ```
 
-You should see: `Login Succeeded`
+**First time?** Images were already pulled during init (~2GB). Start is fast.
 
 ---
 
-## Step 5: Redis
-
-Redis is required. Your admin will provide connection details (managed Redis recommended).
-
-For **local development**, you can run Redis with Docker:
+## Step 5: Verify
 
 ```bash
-docker run -d --name gravity-redis -p 6379:6379 redis:7-alpine
+./gravity status
 ```
 
-Verify it's running:
+All services should show green:
 
-```bash
-docker ps | grep redis
 ```
-
----
-
-## Step 6: Configure Environment
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with credentials from your admin:
-
-```bash
-# Database (get from your admin)
-DATABASE_URL=postgresql://user:pass@host:5432/gravity
-
-# Redis (local dev: use host.docker.internal so containers can reach host Redis)
-REDIS_HOST=host.docker.internal
-REDIS_PORT=6379
-REDIS_PASSWORD=
-REDIS_TLS=false
-
-# Auth (your admin will provide these)
-AUTH_ISSUER=https://your-tenant.auth0.com
-AUTH_CLIENT_ID=your-client-id
-AUTH_AUDIENCE=gravity-api
+  ● gravity-server                Up
+  ● gravity-workflow              Up
+  ● gravity-canvas                Up
+  ● gravity-node-service          Up
+  ● gravity-umap                  Up
+  ● gravity-grafana               Up
 ```
 
 ---
 
-## Step 7: Start the Platform
-
-```bash
-docker compose up -d
-```
-
-This pulls pre-built images from DigitalOcean Container Registry and starts all core services.
-
-**First time?** This downloads ~2GB of images. Subsequent starts are fast.
-
----
-
-## Step 8: Verify
-
-```bash
-docker compose ps
-```
-
-All services should show "Up":
-
-```
-NAME                  STATUS
-gravity-server        Up
-gravity-workflow      Up
-gravity-canvas        Up
-gravity-node-service  Up
-gravity-umap          Up
-gravity-grafana       Up
-...
-```
-
----
-
-## Step 9: Access Services
+## Step 6: Access Services
 
 | Service     | URL                   | Description      |
 | ----------- | --------------------- | ---------------- |
@@ -169,33 +115,40 @@ gravity-grafana       Up
 
 ---
 
-## Developing Your Code
+## Step 7: Set Up Dev Environment
 
-Now that the platform is running, you can develop your custom code:
+Once the platform is running, set up your development tools:
+
+```bash
+./gravity dev
+```
+
+This installs workspace dependencies, generates workflow nodes from the design system, and confirms everything is ready.
+
+---
+
+## Developing Your Code
 
 ### Custom Nodes
 
 ```bash
-cd ~/gravity
-npm install
-npm run build -w @gravity-platform/my-custom-node
-docker compose restart node-service workflow
+# Edit your node code in packages/my-custom-node/
+./gravity build @gravity-platform/my-custom-node
 ```
 
-### UI Components (Storybook)
+### UI Components (Design System)
+
+```bash
+# Edit components in apps/design-system/storybook/
+# Then regenerate and restart:
+./gravity gendesign
+```
+
+### Storybook (Component Preview)
 
 ```bash
 npm run storybook -w @gravity-platform/design-system-dev
 # Opens http://localhost:6006
-```
-
-### Client App (SAB)
-
-```bash
-cd apps/GravitySAB
-npm install
-npm run dev
-# Opens http://localhost:3007
 ```
 
 ---
@@ -205,14 +158,14 @@ npm run dev
 ```bash
 # Start your day
 cd ~/gravity
-docker compose up -d          # Start platform
+./gravity start
 
-# Make changes to packages/ or apps/
-npm run build                 # Build your changes
-docker compose restart node-service workflow  # Pick up changes
+# Make changes to packages/ or apps/design-system/
+./gravity build               # Build all + gen:nodes + restart
+./gravity build @gravity-platform/my-node  # Or build one package
 
 # End your day
-docker compose down           # Stop platform
+./gravity stop
 ```
 
 ---
@@ -223,14 +176,37 @@ When your admin releases a new version:
 
 ```bash
 cd ~/gravity
-git pull                      # Get latest starter code
-docker compose pull           # Get latest Docker images
-docker compose up -d          # Restart with new images
+git pull              # Get latest starter code
+./gravity update      # Pull latest images and restart
 ```
 
 ---
 
+## Platform Commands
+
+| Command                 | Purpose                                               |
+| ----------------------- | ----------------------------------------------------- |
+| `./gravity init`        | Interactive setup wizard (first time)                 |
+| `./gravity start`       | Start the platform                                    |
+| `./gravity stop`        | Stop the platform                                     |
+| `./gravity status`      | Show service health                                   |
+| `./gravity logs`        | Stream logs (`./gravity logs server` for one service) |
+| `./gravity update`      | Pull latest images and restart                        |
+| `./gravity doctor`      | Diagnose issues                                       |
+| `./gravity dev`         | Install deps, generate nodes, start dev environment   |
+| `./gravity build`       | Build all packages + gen:nodes + restart services     |
+| `./gravity build <pkg>` | Build one package + restart services                  |
+| `./gravity gendesign`   | Generate workflow nodes from design system + restart  |
+
+---
+
 ## Troubleshooting
+
+Run the doctor to diagnose issues:
+
+```bash
+./gravity doctor
+```
 
 ### "unauthorized" when pulling images
 
@@ -242,25 +218,23 @@ echo "dop_v1_xxxxx" | docker login registry.digitalocean.com -u dop_v1_xxxxx --p
 ### Services not starting
 
 ```bash
-docker compose logs server    # Check specific service logs
-docker compose logs workflow
+./gravity logs server    # Check specific service logs
+./gravity logs workflow
 ```
 
 ### Redis connection refused
 
-```bash
-# Make sure Redis is running
-docker ps | grep redis
+For local development, start Redis with Docker:
 
-# If not running, start it
+```bash
 docker run -d --name gravity-redis -p 6379:6379 redis:7-alpine
 ```
 
 ### Clean restart
 
 ```bash
-docker compose down
-docker compose up -d
+./gravity stop
+./gravity start
 ```
 
 ### Nuclear reset (deletes all data!)
@@ -268,7 +242,7 @@ docker compose up -d
 ```bash
 docker compose down -v
 docker system prune -a -f
-docker compose up -d
+./gravity start
 ```
 
 ---

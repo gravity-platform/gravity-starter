@@ -92,5 +92,5 @@ ansible-playbook -i inventory/production.yml playbooks/harden.yml -l gravity_ml_
 
 - SSH access to target VMs
 - Ansible installed locally
-- GHCR credentials for pulling images
+- DOCR token for pulling images
 - PostgreSQL instance provisioned (customer-managed)

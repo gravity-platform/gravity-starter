@@ -16,6 +16,7 @@ set -e
 #   ./gravity update    Pull latest images and restart
 #   ./gravity doctor    Diagnose issues
 #   ./gravity pull      Pull images only
+#   ./gravity dev       Install deps, gen:nodes, start dev environment
 # =============================================================================
 
 DOCR_REGISTRY="registry.digitalocean.com"
@@ -436,6 +437,102 @@ print_summary() {
   echo ""
 }
 
+# ─── GENDESIGN ───────────────────────────────────────────────────────────────
+
+cmd_gendesign() {
+  banner "Generate Design System Nodes"
+
+  echo "  Generating workflow nodes from design system..."
+  (cd "$ROOT" && npm run gen:nodes)
+  ok "Node generation complete"
+
+  echo "  Restarting services..."
+  docker compose -f "$ROOT/docker-compose.yml" restart node-service workflow
+  ok "Services restarted — changes are live"
+  echo ""
+}
+
+# ─── BUILD ──────────────────────────────────────────────────────────────────
+
+cmd_build() {
+  local package="$1"
+  banner "Build & Restart"
+
+  if [ -z "$package" ]; then
+    # No package specified — build all, gen:nodes, restart
+    echo "  Building all packages..."
+    (cd "$ROOT" && npm run build)
+    ok "All packages built"
+
+    echo "  Generating nodes from design system..."
+    (cd "$ROOT" && npm run gen:nodes 2>/dev/null) || warn "gen:nodes skipped"
+    ok "Node generation complete"
+  else
+    echo "  Building $package..."
+    (cd "$ROOT" && npm run build -w "$package")
+    ok "$package built"
+  fi
+
+  echo "  Restarting services..."
+  docker compose -f "$ROOT/docker-compose.yml" restart node-service workflow
+  ok "Services restarted — changes are live"
+  echo ""
+}
+
+# ─── DEV ────────────────────────────────────────────────────────────────────
+
+cmd_dev() {
+  banner "Gravity Dev Setup"
+
+  # Check node/npm
+  if ! command -v node &>/dev/null; then
+    fail "Node.js is not installed"
+    info "Install: https://nodejs.org/ or nvm install 20"
+    exit 1
+  fi
+  ok "Node.js $(node --version)"
+
+  if ! command -v npm &>/dev/null; then
+    fail "npm is not installed"
+    exit 1
+  fi
+  ok "npm $(npm --version)"
+
+  # Ensure platform is running
+  local ps
+  ps=$(docker compose -f "$ROOT/docker-compose.yml" ps --format "{{.Name}}" 2>/dev/null) || true
+  if [ -z "$ps" ]; then
+    warn "Platform is not running. Starting it first..."
+    cmd_start
+  else
+    ok "Platform is running"
+  fi
+
+  # Install workspace dependencies
+  echo ""
+  echo "  Installing workspace dependencies..."
+  (cd "$ROOT" && npm install)
+  ok "Dependencies installed"
+
+  # Generate nodes from design system
+  echo ""
+  echo "  Generating nodes from design system..."
+  (cd "$ROOT" && npm run gen:nodes 2>/dev/null) || warn "gen:nodes skipped (no design-system changes)"
+  ok "Node generation complete"
+
+  echo ""
+  banner "Dev Environment Ready"
+  echo ""
+  ok "Platform running — Canvas: http://localhost:3001"
+  ok "Custom code in ${BOLD}packages/${NC} is mounted into node-service"
+  ok "Components in ${BOLD}apps/design-system/${NC} ready for editing"
+  echo ""
+  info "After making changes:"
+  info "  ./gravity build                              # Build all + gen:nodes + restart"
+  info "  ./gravity build @gravity-platform/my-node    # Build one package + restart"
+  echo ""
+}
+
 # ─── MAIN ───────────────────────────────────────────────────────────────────
 
 case "${1:-help}" in
@@ -447,6 +544,9 @@ case "${1:-help}" in
   update) cmd_update ;;
   pull)   cmd_pull ;;
   doctor) cmd_doctor ;;
+  dev)    cmd_dev ;;
+  build)    cmd_build "$2" ;;
+  gendesign) cmd_gendesign ;;
   help|--help|-h)
     echo ""
     echo "  Gravity Platform CLI"
@@ -462,6 +562,9 @@ case "${1:-help}" in
     echo "    update    Pull latest images and restart"
     echo "    pull      Pull images only"
     echo "    doctor    Diagnose issues"
+    echo "    dev       Install deps, generate nodes, start dev environment"
+    echo "    build     Build packages and restart (or: ./gravity build <package>)"
+    echo "    gendesign Generate workflow nodes from design system + restart"
     echo ""
     ;;
   *)
