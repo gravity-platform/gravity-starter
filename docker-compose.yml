@@ -67,7 +67,6 @@ services:
       - REDIS_TLS=${REDIS_TLS}
       - REDIS_NAMESPACE=${REDIS_NAMESPACE}
       - DATABASE_URL=${DATABASE_URL}
-      - SKIP_DB_INIT=${SKIP_DB_INIT}
       - SERVER_WS_URL=ws://server:4100
       - NODE_SERVICE_URL=http://node-service:4102
       - UMAP_SERVICE_URL=http://umap:5001
@@ -92,11 +91,11 @@ services:
     ports:
       - "3001:80"
     environment:
-      - VITE_API_URL=${VITE_API_URL}
-      - VITE_SERVER_WS_URL=${VITE_SERVER_WS_URL}
-      - VITE_AUTH_ISSUER=${VITE_AUTH_ISSUER}
-      - VITE_AUTH_CLIENT_ID=${VITE_AUTH_CLIENT_ID}
-      - VITE_AUTH_AUDIENCE=${VITE_AUTH_AUDIENCE}
+      - VITE_API_URL=${API_URL:-http://server:4100}
+      - VITE_SERVER_WS_URL=${VITE_SERVER_WS_URL:-ws://server:4100}
+      - VITE_AUTH_ISSUER=${AUTH_ISSUER}
+      - VITE_AUTH_CLIENT_ID=${AUTH_CLIENT_ID}
+      - VITE_AUTH_AUDIENCE=${AUTH_AUDIENCE}
     depends_on:
       - server
       - node-service
