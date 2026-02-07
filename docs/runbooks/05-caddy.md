@@ -5,6 +5,7 @@ Configure Caddy for TLS termination and hostname-based routing.
 ## Overview
 
 Caddy provides:
+
 - Automatic Let's Encrypt TLS certificates
 - Hostname-based routing (api.domain.com → server, mcp.domain.com → mcp-server)
 - HTTP → HTTPS redirect
@@ -19,11 +20,11 @@ Caddy provides:
 
 ## When to Use Caddy
 
-| Scenario | Use Caddy? | Notes |
-|----------|------------|-------|
-| Single VM, no LB | ✅ Yes | Caddy handles TLS + routing |
-| Multi-VM with cloud LB | ✅ Yes | LB passthrough, Caddy handles TLS |
-| Enterprise with F5/HAProxy | ❌ No | Customer LB handles everything |
+| Scenario                   | Use Caddy? | Notes                             |
+| -------------------------- | ---------- | --------------------------------- |
+| Single VM, no LB           | ✅ Yes     | Caddy handles TLS + routing       |
+| Multi-VM with cloud LB     | ✅ Yes     | LB passthrough, Caddy handles TLS |
+| Enterprise with F5/HAProxy | ❌ No      | Customer LB handles everything    |
 
 ## Steps
 
@@ -31,9 +32,9 @@ Caddy provides:
 
 Point these A records to your VM IP (or Load Balancer IP):
 
-| Hostname | Value |
-|----------|-------|
-| `yourdomain.com` | `<VM_IP>` |
+| Hostname             | Value     |
+| -------------------- | --------- |
+| `yourdomain.com`     | `<VM_IP>` |
 | `api.yourdomain.com` | `<VM_IP>` |
 | `mcp.yourdomain.com` | `<VM_IP>` |
 
@@ -67,18 +68,18 @@ User → LB (HTTPS Passthrough) → VM → Caddy (TLS) → Services
 
 ## Configured Routes
 
-| Subdomain | Service | Port |
-|-----------|---------|------|
-| `domain.com` | Canvas (UI) | 3001 |
-| `api.domain.com` | API Server | 4100 |
-| `mcp.domain.com` | MCP Server | 4103 |
+| Subdomain        | Service     | Port |
+| ---------------- | ----------- | ---- |
+| `domain.com`     | Canvas (UI) | 3001 |
+| `api.domain.com` | API Server  | 4100 |
+| `mcp.domain.com` | MCP Server  | 4103 |
 
 ## Expected Output
 
 ```
 CADDY REVERSE PROXY INSTALLED
 ============================================
-Host: gravity-prod (YOUR_VM_IP)
+Host: gravity-prod (<YOUR_VM_IP>)
 Domain: yourdomain.com
 Mode: Direct (TLS via Lets Encrypt)
 
@@ -90,11 +91,11 @@ Configured routes:
 
 ## Troubleshooting
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Cert provisioning failed | DNS not pointing to VM | Verify DNS with `dig yourdomain.com` |
-| Port 80/443 blocked | Firewall | Open ports: `ufw allow 80,443/tcp` |
-| Too many cert requests | Rate limited | Wait 1 hour, Let's Encrypt has rate limits |
+| Issue                    | Cause                  | Fix                                        |
+| ------------------------ | ---------------------- | ------------------------------------------ |
+| Cert provisioning failed | DNS not pointing to VM | Verify DNS with `dig yourdomain.com`       |
+| Port 80/443 blocked      | Firewall               | Open ports: `ufw allow 80,443/tcp`         |
+| Too many cert requests   | Rate limited           | Wait 1 hour, Let's Encrypt has rate limits |
 
 ## Uninstall Caddy
 

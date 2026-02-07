@@ -5,6 +5,7 @@ Apply security hardening to Gravity Platform VMs.
 ## Overview
 
 This runbook applies security best practices to production VMs:
+
 - Firewall configuration (UFW)
 - SSH hardening
 - Fail2ban for brute-force protection
@@ -40,12 +41,12 @@ ansible-playbook -i inventory/production.yml playbooks/test-connectivity.yml
 
 ### Firewall (UFW)
 
-| Port | Protocol | Source | Purpose |
-|------|----------|--------|---------|
-| 22 | TCP | Your IP | SSH access |
-| 80 | TCP | Any | HTTP (Caddy redirect) |
-| 443 | TCP | Any | HTTPS (Caddy) |
-| 5432 | TCP | Outbound only | PostgreSQL |
+| Port | Protocol | Source        | Purpose               |
+| ---- | -------- | ------------- | --------------------- |
+| 22   | TCP      | Your IP       | SSH access            |
+| 80   | TCP      | Any           | HTTP (Caddy redirect) |
+| 443  | TCP      | Any           | HTTPS (Caddy)         |
+| 5432 | TCP      | Outbound only | PostgreSQL            |
 
 ### SSH Hardening
 
@@ -64,7 +65,7 @@ ansible-playbook -i inventory/production.yml playbooks/test-connectivity.yml
 ```
 SECURITY HARDENING APPLIED
 ============================================
-Host: gravity-prod (YOUR_VM_IP)
+Host: gravity-prod (<YOUR_VM_IP>)
 
 Applied:
   - UFW firewall: ENABLED
@@ -75,10 +76,10 @@ Applied:
 
 ## Troubleshooting
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Locked out of SSH | Firewall too strict | Use DO Console to access VM |
-| Services unreachable | Ports not opened | Check UFW rules: `ufw status` |
+| Issue                 | Cause                    | Fix                                                |
+| --------------------- | ------------------------ | -------------------------------------------------- |
+| Locked out of SSH     | Firewall too strict      | Use DO Console to access VM                        |
+| Services unreachable  | Ports not opened         | Check UFW rules: `ufw status`                      |
 | Fail2ban blocking you | Too many failed attempts | Wait 10 min or unban: `fail2ban-client unban <IP>` |
 
 ## Rollback

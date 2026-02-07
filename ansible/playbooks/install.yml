@@ -1,14 +1,14 @@
 ---
 # Gravity Platform Installation Playbook
-# Installs core platform services from GHCR
+# Installs core platform services from DOCR (DigitalOcean Container Registry)
 #
 # Usage:
 #   ansible-playbook -i inventory/production.yml playbooks/install.yml
 #
 # Prerequisites:
-#   - ansible/files/.env configured with GHCR_USERNAME, GHCR_TOKEN, DATABASE_URL, etc.
+#   - ansible/files/.env configured with DOCR_TOKEN, DATABASE_URL, etc.
 #
-# This playbook installs CORE PLATFORM only (from GHCR images).
+# This playbook installs CORE PLATFORM only (from DOCR images).
 # For customer packages (custom nodes, design system), run deploy-packages.yml
 
 - name: Install Gravity Platform
@@ -61,26 +61,17 @@
         append: yes
 
   tasks:
-    - name: "[5/10] Read GHCR credentials from local .env"
-      shell: grep '^GHCR_USERNAME=' {{ env_file | default('../files/.env') }} | cut -d= -f2
-      register: ghcr_username_result
+    - name: "[5/10] Read DOCR token from local .env"
+      shell: grep '^DOCR_TOKEN=' {{ env_file | default('../files/.env') }} | cut -d= -f2
+      register: docr_token_result
       delegate_to: localhost
       become: no
       changed_when: false
       ignore_errors: yes
 
-    - name: "[5/10] Read GHCR_TOKEN from local .env"
-      shell: grep '^GHCR_TOKEN=' {{ env_file | default('../files/.env') }} | cut -d= -f2
-      register: ghcr_token_result
-      delegate_to: localhost
-      become: no
-      changed_when: false
-      ignore_errors: yes
-
-    - name: "[5/10] Set GHCR credentials"
+    - name: "[5/10] Set DOCR credentials"
       set_fact:
-        ghcr_username: "{{ ghcr_username_result.stdout | default('') }}"
-        ghcr_token: "{{ ghcr_token_result.stdout | default('') }}"
+        docr_token: "{{ docr_token_result.stdout | default('') }}"
 
     - name: "[6/10] Create gravity directory"
       file:
@@ -103,16 +94,16 @@
         owner: "{{ ansible_user }}"
         mode: "0600"
 
-    - name: "[8/10] Login to GHCR"
-      shell: echo "{{ ghcr_token }}" | docker login ghcr.io -u "{{ ghcr_username }}" --password-stdin
-      when: ghcr_token != ""
+    - name: "[8/10] Login to DOCR"
+      shell: echo "{{ docr_token }}" | docker login registry.digitalocean.com -u "{{ docr_token }}" --password-stdin
+      when: docr_token != ""
       no_log: true
-      register: ghcr_login
+      register: docr_login
 
-    - name: "[8/10] GHCR login status"
+    - name: "[8/10] DOCR login status"
       debug:
-        msg: "Logged in to GHCR as {{ ghcr_username }}"
-      when: ghcr_token != ""
+        msg: "Logged in to DigitalOcean Container Registry"
+      when: docr_token != ""
 
     - name: "[9/10] Pull Gravity images"
       command: docker compose pull

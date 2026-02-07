@@ -25,7 +25,7 @@ Deploy the core Gravity Platform services to a VM.
 - [ ] SSH access configured (key-based)
 - [ ] PostgreSQL database provisioned (see [02-database.md](./02-database.md))
 - [ ] Redis provisioned (managed Redis recommended for enterprise)
-- [ ] GHCR credentials for pulling Gravity Docker images
+- [ ] DOCR token for pulling Gravity Docker images (from your Gravity admin)
 
 ## Steps
 
@@ -46,9 +46,8 @@ all:
 Copy `ansible/files/.env.example` to `ansible/files/.env` and configure:
 
 ```bash
-# GHCR - Gravity's Docker images
-GHCR_USERNAME=your-github-username
-GHCR_TOKEN=ghp_your_ghcr_token
+# DOCR - DigitalOcean Container Registry
+DOCR_TOKEN=dop_v1_your_token_here
 
 # Database and Redis
 DATABASE_URL=postgresql://user:pass@host:5432/gravity
@@ -64,7 +63,7 @@ cd ansible
 ansible-playbook -i inventory/production.yml playbooks/install.yml
 ```
 
-This installs **core platform only** (server, workflow, node-service, mcp-server, canvas) from GHCR.
+This installs **core platform only** (server, workflow, node-service, mcp-server, canvas) from DOCR.
 
 ### 4. Deploy Customer Packages (Optional)
 
@@ -86,7 +85,7 @@ ansible-playbook -i inventory/production.yml playbooks/health-check.yml
 ```
 GRAVITY PLATFORM DEPLOYED SUCCESSFULLY
 ============================================
-Host: gravity-prod (YOUR_VM_IP)
+Host: gravity-prod (<YOUR_VM_IP>)
 
 Service Health:
   - Server:       OK
@@ -98,7 +97,7 @@ Service Health:
 
 | Issue               | Cause            | Fix                                            |
 | ------------------- | ---------------- | ---------------------------------------------- |
-| GHCR login failed   | Invalid token    | Regenerate PAT with `read:packages` scope      |
+| DOCR login failed   | Invalid token    | Get a new DOCR token from your Gravity admin   |
 | Service unhealthy   | Missing env vars | Check `.env` file on VM at `/opt/gravity/.env` |
 | Port already in use | Previous install | Run `docker compose down` first                |
 

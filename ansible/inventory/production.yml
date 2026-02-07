@@ -1,25 +1,22 @@
-# Gravity Platform Staging Inventory
-# Test deployment on DigitalOcean
+# Gravity Platform Production Inventory
+# Copy from production.yml.example and update with your values
 
 all:
   vars:
-    ansible_user: root
-    ansible_ssh_private_key_file: ~/.ssh/id_ed25519
-
-    # Docker image registry
-    docker_registry: ghcr.io/gravity-platform
-    gravity_version: latest
-
-    # GHCR credentials - set via environment or pass with -e
-    # export GHCR_USERNAME=payner35 GHCR_TOKEN=ghp_xxx
-    ghcr_username: "{{ lookup('env', 'GHCR_USERNAME') }}"
-    ghcr_token: "{{ lookup('env', 'GHCR_TOKEN') }}"
+    # ==========================================================================
+    # CUSTOMER'S GRAVITY REPO (fork of gravity-starter)
+    # ==========================================================================
+    # Customer forks gravity-starter to their own GitHub, customizes packages/
+    # This repo is cloned on the VM - contains packages/, docker-compose.yml, etc.
+    starter_repo: "https://github.com/your-org/your-gravity.git"
+    starter_branch: main
 
   children:
     app_vms:
       hosts:
-        gravity-prod:
-          ansible_host: YOUR_VM_IP
+        app-vm-1:
+          ansible_host: 10.0.1.10
+          ansible_user: gravity
       vars:
         gravity_services:
           - server
@@ -27,13 +24,12 @@ all:
           - node-service
           - mcp-server
           - canvas
-          - redis
-          - postgres
 
     ml_vms:
       hosts:
-        gravity-prod:
-          ansible_host: YOUR_VM_IP
+        ml-vm-1:
+          ansible_host: 10.0.1.20
+          ansible_user: gravity
       vars:
         gravity_services:
           - umap

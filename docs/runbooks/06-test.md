@@ -45,7 +45,7 @@ docker compose logs --tail=50 workflow
 ```
 CONNECTIVITY TEST RESULTS
 ============================================
-Host: gravity-prod (YOUR_VM_IP)
+Host: gravity-prod (<YOUR_VM_IP>)
 
 Docker: OK
 

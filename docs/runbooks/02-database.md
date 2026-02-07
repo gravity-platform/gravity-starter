@@ -47,7 +47,7 @@ ansible-playbook -i inventory/production.yml playbooks/health-check.yml
 ```
 DATABASE MIGRATION
 ============================================
-Host: gravity-prod (YOUR_VM_IP)
+Host: gravity-prod (<YOUR_VM_IP>)
 Migration: OK
 ```
 

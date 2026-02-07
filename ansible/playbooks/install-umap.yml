@@ -7,7 +7,7 @@
 #
 # Prerequisites:
 #   - ML VM provisioned and accessible via SSH
-#   - GHCR credentials configured in inventory or environment
+#   - DOCR token configured in .env or passed via -e docr_token=...
 #
 # After deployment, update App VMs .env:
 #   UMAP_SERVICE_URL=http://<ML_VM_PRIVATE_IP>:5001
@@ -69,19 +69,19 @@
         - /opt/gravity-umap
         - /opt/gravity-umap/models
 
-    - name: "[6/7] Login to GHCR"
-      shell: echo "{{ ghcr_token }}" | docker login ghcr.io -u "{{ ghcr_username }}" --password-stdin
-      when: ghcr_token is defined and ghcr_token != ""
+    - name: "[6/7] Login to DOCR"
+      shell: echo "{{ docr_token }}" | docker login registry.digitalocean.com -u "{{ docr_token }}" --password-stdin
+      when: docr_token is defined and docr_token != ""
       no_log: true
-      register: ghcr_login
+      register: docr_login
 
-    - name: "[6/7] GHCR login status"
+    - name: "[6/7] DOCR login status"
       debug:
-        msg: "Logged in to GHCR as {{ ghcr_username }}"
-      when: ghcr_token is defined and ghcr_token != ""
+        msg: "Logged in to DigitalOcean Container Registry"
+      when: docr_token is defined and docr_token != ""
 
     - name: "[6/7] Pull UMAP image"
-      command: docker pull ghcr.io/gravity-platform/gravity-umap:{{ gravity_version | default('latest') }}
+      command: docker pull registry.digitalocean.com/gravity-repo/gravity-umap:{{ gravity_version | default('latest') }}
       register: pull_result
 
     - name: "[6/7] Image pulled"
@@ -105,7 +105,7 @@
         -v /opt/gravity-umap/models:/app/models
         --memory=2g
         --cpus=1.0
-        ghcr.io/gravity-platform/gravity-umap:{{ gravity_version | default('latest') }}
+        registry.digitalocean.com/gravity-repo/gravity-umap:{{ gravity_version | default('latest') }}
       register: start_result
 
     - name: "[7/7] Container started"
@@ -134,11 +134,11 @@
           UMAP SERVICE DEPLOYED
           ============================================
           Host: {{ inventory_hostname }} ({{ ansible_host }})
-          
+
           Health: {{ 'OK' if umap_health.status == 200 else 'FAILED' }}
-          
+
           Internal URL: http://{{ ansible_host }}:5001
-          
+
           Next steps:
             1. Update App VMs .env with:
                UMAP_SERVICE_URL=http://{{ ansible_host }}:5001
