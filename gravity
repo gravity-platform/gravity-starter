@@ -25,17 +25,25 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Find project root (directory containing docker-compose.yml)
 find_root() {
+  # First: check current working directory (for global installs)
+  if [ -f "$PWD/docker-compose.yml" ]; then
+    echo "$PWD"
+    return
+  fi
+
+  # Second: check relative to script location (for ./gravity usage)
   local dir="$SCRIPT_DIR"
-  # If script is in scripts/, go up one level
   if [ "$(basename "$dir")" = "scripts" ]; then
     dir="$(dirname "$dir")"
   fi
   if [ -f "$dir/docker-compose.yml" ]; then
     echo "$dir"
-  else
-    echo "Error: No docker-compose.yml found" >&2
-    exit 1
+    return
   fi
+
+  echo "Error: No docker-compose.yml found in current directory" >&2
+  echo "  Run this command from your gravity project folder." >&2
+  exit 1
 }
 
 ROOT="$(find_root)"
