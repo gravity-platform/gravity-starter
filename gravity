@@ -476,7 +476,6 @@ cmd_pull() {
     return
   fi
 
-  # docker compose pull ignores platform: field — must use docker pull --platform
   local IMAGES=(
     "registry.digitalocean.com/gravity-repo/gravity-server:latest"
     "registry.digitalocean.com/gravity-repo/gravity-workflow:latest"
@@ -499,7 +498,7 @@ cmd_pull() {
     short="${short%%:*}"              # gravity-server
 
     # Start pull in background
-    docker pull --platform linux/amd64 "$img" &>/dev/null &
+    docker pull "$img" &>/dev/null &
     local pid=$!
 
     # Animate spinner while pulling
@@ -557,7 +556,7 @@ cmd_doctor() {
 
   # Apple Silicon
   if [ "$(uname -m)" = "arm64" ]; then
-    info "Apple Silicon detected — ensure Rosetta is enabled in Docker Desktop"
+    ok "Apple Silicon detected — multi-arch images will run natively"
   fi
 
   # Project root
