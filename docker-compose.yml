@@ -23,9 +23,12 @@ services:
     image: registry.digitalocean.com/gravity-repo/gravity-server:latest
     ports:
       - "4100:4100"
+    volumes:
+      - ./packages/design-system:/app/packages/design-system # Component bundles served to Canvas
     environment:
       - NODE_ENV=production
       - PORT=4100
+      - DESIGN_SYSTEM_PATH=/app/packages/design-system
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PORT=${REDIS_PORT}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
