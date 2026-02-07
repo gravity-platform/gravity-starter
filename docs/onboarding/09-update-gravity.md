@@ -15,12 +15,12 @@ cd ~/gravity
 git pull
 ```
 
-This updates your `docker-compose.yml`, `./gravity` script, docs, and any shared config.
+This updates your `docker-compose.yml`, `gravity` CLI, docs, and any shared config.
 
 ### 2. Update Platform Images
 
 ```bash
-./gravity update
+gravity update
 ```
 
 This pulls the latest Docker images and restarts all services.
@@ -28,8 +28,8 @@ This pulls the latest Docker images and restarts all services.
 ### 3. Verify
 
 ```bash
-./gravity status
-./gravity doctor
+gravity status
+gravity doctor
 ```
 
 ## ✅ Onboarding Complete!

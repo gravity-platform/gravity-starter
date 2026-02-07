@@ -77,6 +77,42 @@ timer_elapsed() {
   fi
 }
 
+# Install gravity to PATH so it works globally
+install_to_path() {
+  local target="/usr/local/bin/gravity"
+  local script_path="$ROOT/gravity"
+
+  # Already installed and pointing to the right place
+  if [ -L "$target" ] && [ "$(readlink "$target")" = "$script_path" ]; then
+    return
+  fi
+
+  # Already installed (different project) — skip
+  if [ -f "$target" ] && [ ! -L "$target" ]; then
+    return
+  fi
+
+  echo ""
+  echo -e "  ${CYAN}${BOLD}Install gravity command globally?${NC}"
+  echo -e "  ${DIM}This lets you run ${NC}${BOLD}gravity start${NC}${DIM} instead of ${NC}${BOLD}./gravity start${NC}"
+  echo ""
+  read -p "  Install to /usr/local/bin/gravity? [Y/n] " -n 1 -r
+  echo ""
+  if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+    if ln -sf "$script_path" "$target" 2>/dev/null; then
+      ok "Installed! You can now use ${BOLD}gravity${NC} from anywhere in this project"
+    else
+      # Need sudo
+      echo -e "  ${DIM}Requires admin access...${NC}"
+      if sudo ln -sf "$script_path" "$target" 2>/dev/null; then
+        ok "Installed! You can now use ${BOLD}gravity${NC} from anywhere in this project"
+      else
+        warn "Could not install. Use ${BOLD}./gravity${NC} instead"
+      fi
+    fi
+  fi
+}
+
 # First-run detection
 check_first_run() {
   if [ ! -f "$ROOT/.env" ]; then
@@ -92,7 +128,7 @@ check_first_run() {
       cmd_init
     else
       echo ""
-      info "Run ${BOLD}./gravity init${NC} when you're ready."
+      info "Run ${BOLD}gravity init${NC} when you're ready."
       echo ""
     fi
     exit 0
@@ -232,6 +268,9 @@ ENVEOF
   # Pull images
   cmd_pull
 
+  # Install to PATH
+  install_to_path
+
   # Done
   echo ""
   echo -e "  ${GREEN}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -240,11 +279,11 @@ ENVEOF
   echo ""
   echo -e "  ${BOLD}Next steps:${NC}"
   echo ""
-  echo -e "    ${GREEN}1.${NC} ${BOLD}./gravity start${NC}   Start the platform"
-  echo -e "    ${GREEN}2.${NC} ${BOLD}./gravity open${NC}    Open Canvas in your browser"
-  echo -e "    ${GREEN}3.${NC} ${BOLD}./gravity dev${NC}     Set up dev environment"
+  echo -e "    ${GREEN}1.${NC} ${BOLD}gravity start${NC}   Start the platform"
+  echo -e "    ${GREEN}2.${NC} ${BOLD}gravity open${NC}    Open Canvas in your browser"
+  echo -e "    ${GREEN}3.${NC} ${BOLD}gravity dev${NC}     Set up dev environment"
   echo ""
-  info "Run ${BOLD}./gravity doctor${NC} anytime to check health"
+  info "Run ${BOLD}gravity doctor${NC} anytime to check health"
   echo ""
 }
 

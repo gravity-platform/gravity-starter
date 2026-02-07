@@ -110,7 +110,7 @@ npm run build -w @gravity-platform/my-node
 docker compose restart node-service workflow
 ```
 
-> **Tip:** If you haven't run `./gravity dev` yet, do that first — it installs all workspace dependencies.
+> **Tip:** If you haven't run `make dev` yet, do that first — it installs all workspace dependencies.
 
 Your node now appears in Canvas!
 

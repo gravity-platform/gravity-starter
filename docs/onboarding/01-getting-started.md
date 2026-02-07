@@ -65,11 +65,11 @@ git clone https://YOUR_USERNAME:YOUR_GITHUB_TOKEN@github.com/YOUR_ORG/gravity-st
 
 ## Step 3: Run the Setup Wizard
 
-The `./gravity` CLI handles everything — Docker login, environment config, and image pulling:
+The Gravity CLI handles everything — Docker login, environment config, and image pulling:
 
 ```bash
 cd ~/gravity
-./gravity init
+gravity init
 ```
 
 The wizard will ask for your DOCR token, database URL, Redis, and auth credentials. It generates your `.env` file, logs into the registry, and pulls all platform images.
@@ -79,7 +79,7 @@ The wizard will ask for your DOCR token, database URL, Redis, and auth credentia
 ## Step 4: Start the Platform
 
 ```bash
-./gravity start
+gravity start
 ```
 
 **First time?** Images were already pulled during init (~2GB). Start is fast.
@@ -89,7 +89,7 @@ The wizard will ask for your DOCR token, database URL, Redis, and auth credentia
 ## Step 5: Verify
 
 ```bash
-./gravity status
+gravity status
 ```
 
 All services should show green:
@@ -120,7 +120,7 @@ All services should show green:
 Once the platform is running, set up your development tools:
 
 ```bash
-./gravity dev
+gravity dev
 ```
 
 This installs workspace dependencies, generates workflow nodes from the design system, and confirms everything is ready.
@@ -133,7 +133,7 @@ This installs workspace dependencies, generates workflow nodes from the design s
 
 ```bash
 # Edit your node code in packages/my-custom-node/
-./gravity build @gravity-platform/my-custom-node
+gravity build @gravity-platform/my-custom-node
 ```
 
 ### UI Components (Design System)
@@ -141,7 +141,7 @@ This installs workspace dependencies, generates workflow nodes from the design s
 ```bash
 # Edit components in apps/design-system/storybook/
 # Then regenerate and restart:
-./gravity gendesign
+gravity gendesign
 ```
 
 ### Storybook (Component Preview)
@@ -158,14 +158,14 @@ npm run storybook -w @gravity-platform/design-system-dev
 ```bash
 # Start your day
 cd ~/gravity
-./gravity start
+gravity start
 
 # Make changes to packages/ or apps/design-system/
-./gravity build               # Build all + gen:nodes + restart
-./gravity build @gravity-platform/my-node  # Or build one package
+gravity build               # Build all + gen:nodes + restart
+gravity build @gravity-platform/my-node  # Or build one package
 
 # End your day
-./gravity stop
+gravity stop
 ```
 
 ---
@@ -177,27 +177,28 @@ When your admin releases a new version:
 ```bash
 cd ~/gravity
 git pull              # Get latest starter code
-./gravity update      # Pull latest images and restart
+gravity update           # Pull latest images and restart
 ```
 
 ---
 
 ## Platform Commands
 
-| Command                 | Purpose                                               |
-| ----------------------- | ----------------------------------------------------- |
-| `./gravity init`        | Interactive setup wizard (first time)                 |
-| `./gravity start`       | Start the platform                                    |
-| `./gravity stop`        | Stop the platform                                     |
-| `./gravity status`      | Show service health                                   |
-| `./gravity logs`        | Stream logs (`./gravity logs server` for one service) |
-| `./gravity update`      | Pull latest images and restart                        |
-| `./gravity doctor`      | Diagnose issues                                       |
-| `./gravity dev`         | Install deps, generate nodes, start dev environment   |
-| `./gravity build`       | Build all packages + gen:nodes + restart services     |
-| `./gravity build <pkg>` | Build one package + restart services                  |
-| `./gravity gendesign`   | Generate workflow nodes from design system + restart  |
-| `./gravity open`        | Open Canvas in browser (`./gravity open grafana`)     |
+| Command               | Purpose                                             |
+| --------------------- | --------------------------------------------------- |
+| `gravity init`        | Interactive setup wizard (first time)               |
+| `gravity start`       | Start the platform                                  |
+| `gravity stop`        | Stop the platform                                   |
+| `gravity status`      | Show service health                                 |
+| `gravity logs`        | Stream logs                                         |
+| `gravity update`      | Pull latest images and restart                      |
+| `gravity doctor`      | Diagnose issues                                     |
+| `gravity dev`         | Install deps, generate nodes, start dev environment |
+| `gravity build`       | Build all packages + gen:nodes + restart services   |
+| `gravity build <pkg>` | Build one package + restart services                |
+| `gravity gendesign`   | Generate design system nodes + restart              |
+| `gravity open`        | Open Canvas in browser (`gravity open grafana`)     |
+| `gravity help`        | Show all commands                                   |
 
 ---
 
@@ -206,7 +207,7 @@ git pull              # Get latest starter code
 Run the doctor to diagnose issues:
 
 ```bash
-./gravity doctor
+gravity doctor
 ```
 
 ### "unauthorized" when pulling images
@@ -219,8 +220,8 @@ echo "dop_v1_xxxxx" | docker login registry.digitalocean.com -u dop_v1_xxxxx --p
 ### Services not starting
 
 ```bash
-./gravity logs server    # Check specific service logs
-./gravity logs workflow
+gravity logs server    # Check specific service logs
+gravity logs workflow
 ```
 
 ### Redis connection refused
@@ -234,8 +235,8 @@ docker run -d --name gravity-redis -p 6379:6379 redis:7-alpine
 ### Clean restart
 
 ```bash
-./gravity stop
-./gravity start
+gravity stop
+gravity start
 ```
 
 ### Nuclear reset (deletes all data!)
@@ -243,7 +244,7 @@ docker run -d --name gravity-redis -p 6379:6379 redis:7-alpine
 ```bash
 docker compose down -v
 docker system prune -a -f
-./gravity start
+gravity start
 ```
 
 ---
