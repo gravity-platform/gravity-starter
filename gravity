@@ -475,9 +475,12 @@ cmd_update() {
   echo "  Rebuilding packages..."
   (cd "$ROOT" && npm install --silent 2>/dev/null) || true
   (cd "$ROOT" && npm run build -w @gravity-platform/plugin-base 2>/dev/null) || true
-  (cd "$ROOT" && npm run build --workspaces --if-present 2>&1) || true
+  local build_output
+  build_output=$(cd "$ROOT" && npm run build --workspaces --if-present 2>&1) || true
+  local pkg_count
+  pkg_count=$(echo "$build_output" | grep -c '> .* build$' || echo "0")
   (cd "$ROOT" && npm run gen:nodes 2>/dev/null) || true
-  ok "Packages rebuilt"
+  ok "Packages rebuilt ${DIM}(${pkg_count} packages)${NC}"
 
   echo "  Restarting services..."
   docker compose -f "$ROOT/docker-compose.yml" --env-file "$ROOT/.env" up -d
@@ -772,20 +775,23 @@ cmd_dev() {
   # Install workspace dependencies
   echo ""
   echo "  Installing workspace dependencies..."
-  (cd "$ROOT" && npm install)
+  (cd "$ROOT" && npm install --silent 2>/dev/null)
   ok "Dependencies installed"
 
   # Build all packages (plugin-base first as it's a dependency for others)
   echo ""
   echo "  Building packages..."
-  (cd "$ROOT" && npm run build -w @gravity-platform/plugin-base) || warn "plugin-base build failed"
-  (cd "$ROOT" && npm run build --workspaces --if-present 2>&1) || warn "some packages failed to build"
-  ok "Packages built"
+  (cd "$ROOT" && npm run build -w @gravity-platform/plugin-base 2>/dev/null) || warn "plugin-base build failed"
+  local dev_build_output
+  dev_build_output=$(cd "$ROOT" && npm run build --workspaces --if-present 2>&1) || warn "some packages failed to build"
+  local dev_pkg_count
+  dev_pkg_count=$(echo "$dev_build_output" | grep -c '> .* build$' || echo "0")
+  ok "Packages built ${DIM}(${dev_pkg_count} packages)${NC}"
 
   # Generate nodes from design system
   echo ""
   echo "  Generating nodes from design system..."
-  (cd "$ROOT" && npm run gen:nodes 2>/dev/null) || warn "gen:nodes skipped (no design-system changes)"
+  (cd "$ROOT" && npm run gen:nodes >/dev/null 2>&1) || warn "gen:nodes skipped (no design-system changes)"
   ok "Node generation complete"
 
   # Restart node-service to pick up newly built packages
