@@ -105,16 +105,6 @@ services:
       - "4102:4102"
     volumes:
       - ./packages:/app/packages # Mount packages for auto-discovery
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        mkdir -p /app/node_modules/@gravity-platform
-        for dir in /app/packages/*/; do
-          name=$$(basename "$$dir")
-          ln -sfn "$$dir" "/app/node_modules/@gravity-platform/$$name"
-        done
-        exec node dist/index.js
     environment:
       - NODE_ENV=production
       - PORT=4102
