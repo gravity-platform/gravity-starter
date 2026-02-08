@@ -88,10 +88,12 @@
       ignore_errors: yes
 
     # ── Application-Level Checks ────────────────────────────────
-    - name: "[8/9] Test API endpoints (actual data)"
+    - name: "[8/11] Test API endpoints (read)"
       shell: |
-        STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:{{ item.port }}{{ item.path }})
-        echo "$STATUS"
+        RESPONSE=$(curl -s -w '\n%{http_code}' --max-time 10 http://localhost:{{ item.port }}{{ item.path }})
+        STATUS=$(echo "$RESPONSE" | tail -1)
+        BODY=$(echo "$RESPONSE" | head -n -1)
+        echo "HTTP $STATUS"
         [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]
       loop:
         - { name: "GET /api/workflows", port: 4100, path: "/api/workflows" }
@@ -100,8 +102,33 @@
       register: api_checks
       ignore_errors: yes
 
+    - name: "[9/11] Test API write (POST workflow)"
+      shell: |
+        RESPONSE=$(curl -s -w '\n%{http_code}' --max-time 10 \
+          -X POST http://localhost:4100/api/workflows \
+          -H 'Content-Type: application/json' \
+          -d '{"name":"_health_check_test","nodes":[],"edges":[]}')
+        STATUS=$(echo "$RESPONSE" | tail -1)
+        echo "HTTP $STATUS"
+        [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]
+      register: api_write_check
+      ignore_errors: yes
+
+    - name: "[10/11] Check for errors in service logs"
+      shell: |
+        cd /opt/gravity
+        ERRORS=$(docker compose logs --tail=50 --since=5m 2>&1 | grep -iE 'error|fatal|panic|does not exist|ECONNREFUSED' | tail -10)
+        if [ -n "$ERRORS" ]; then
+          echo "$ERRORS"
+          exit 1
+        else
+          echo "No recent errors"
+        fi
+      register: log_errors
+      ignore_errors: yes
+
     # ── Caddy ───────────────────────────────────────────────────
-    - name: "[9/9] Test external connectivity (if Caddy installed)"
+    - name: "[11/11] Test external connectivity (if Caddy installed)"
       wait_for:
         host: localhost
         port: "{{ item }}"
@@ -109,13 +136,6 @@
       loop: [80, 443]
       register: caddy_ports
       ignore_errors: yes
-
-    # ── Grab logs from failing services ─────────────────────────
-    - name: "Collect server logs (last 30 lines)"
-      shell: cd /opt/gravity && docker compose logs --tail=30 server 2>&1
-      register: server_logs
-      ignore_errors: yes
-      when: api_checks.results | selectattr('failed') | list | length > 0
 
   post_tasks:
     - name: "=== PLATFORM HEALTH CHECK ==="
@@ -152,17 +172,18 @@
             - {{ result.item.name }}: {{ 'OK' if not result.failed else 'FAILED' }}
           {% endfor %}
 
-          ── API Endpoints (actual data) ──
+          ── API Endpoints (read) ──
           {% for result in api_checks.results %}
-            - {{ result.item.name }}: {{ 'HTTP ' + result.stdout | default('???') if not result.failed else 'FAILED (HTTP ' + result.stdout | default('???') + ')' }}
+            - {{ result.item.name }}: {{ result.stdout | default('???') if not result.failed else 'FAILED (' + result.stdout | default('???') + ')' }}
           {% endfor %}
+
+          ── API Write Test ──
+            - POST /api/workflows: {{ api_write_check.stdout | default('???') if not api_write_check.failed else 'FAILED (' + api_write_check.stdout | default('???') + ')' }}
+
+          ── Recent Errors in Logs ──
+          {{ log_errors.stdout | default('(skipped)') }}
 
           ── Caddy ──
             - Port 80: {{ 'OK' if not caddy_ports.results[0].failed else 'CLOSED' }}
             - Port 443: {{ 'OK' if not caddy_ports.results[1].failed else 'CLOSED' }}
           ============================================
-
-    - name: "=== SERVER LOGS (if API errors) ==="
-      debug:
-        msg: "{{ server_logs.stdout }}"
-      when: server_logs is defined and server_logs.stdout is defined

@@ -25,12 +25,10 @@
         owner: "{{ ansible_user }}"
         mode: "0644"
 
-    - name: Update .env
-      copy:
-        src: "{{ env_file | default('../files/.env') }}"
-        dest: /opt/gravity/.env
-        owner: "{{ ansible_user }}"
-        mode: "0600"
+    # NOTE: .env is NOT updated here. The server's .env was configured during
+    # initial install (install.yml) and contains production-specific secrets
+    # (DATABASE_URL, Redis, Auth0) that differ from ansible/files/.env.
+    # To update .env on the server, use install.yml or edit manually.
 
     - name: Pull new images
       command: docker compose pull
