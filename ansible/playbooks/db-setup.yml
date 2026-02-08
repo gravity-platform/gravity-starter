@@ -34,8 +34,10 @@
         msg: "DATABASE_URL not found in .env - configure database connection first"
       when: db_url_check.rc != 0
 
-    - name: "[3/4] Run database migrations via workflow service"
-      command: docker compose exec -T workflow npm run db:migrate
+    - name: "[3/4] Initialize database tables via workflow service"
+      command: >
+        docker compose exec -T workflow node -e
+        "const{initializeTables}=require('./dist/db');initializeTables().then(()=>{console.log('Tables initialized');process.exit(0)}).catch(e=>{console.error(e);process.exit(1)})"
       args:
         chdir: /opt/gravity
       register: migrate_result
@@ -46,10 +48,13 @@
         msg: "{{ migrate_result.stdout_lines | default(['No output']) }}"
 
     - name: "[4/4] Verify database connectivity"
-      command: docker compose exec -T workflow npm run db:check
-      args:
-        chdir: /opt/gravity
+      uri:
+        url: "http://localhost:4101/health"
+        status_code: 200
       register: db_check
+      retries: 5
+      delay: 2
+      until: db_check.status == 200
       ignore_errors: yes
 
   post_tasks:
