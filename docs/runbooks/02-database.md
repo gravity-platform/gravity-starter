@@ -16,12 +16,21 @@ The `DATABASE_URL` is configured in `ansible/files/.env` and deployed with `inst
 
 ## Database Requirements
 
-| Requirement        | Value                          |
-| ------------------ | ------------------------------ |
-| PostgreSQL version | 14+                            |
-| Database name      | `gravity`                      |
-| SSL                | Required for managed databases |
-| Min connections    | 20                             |
+| Requirement        | Value                                          |
+| ------------------ | ---------------------------------------------- |
+| PostgreSQL version | 14+                                            |
+| Database name      | `gravity`                                      |
+| SSL                | Required for managed databases                 |
+| Min connections    | 20                                             |
+| **PostGIS**        | **Required** (for Dictionary/spatial features) |
+
+> **⚠️ PostGIS is required.** The Dictionary feature uses spatial queries. Without PostGIS, `db-setup` will fail on dictionary table creation.
+>
+> **How to enable PostGIS:**
+>
+> - **DigitalOcean Managed DB:** Database → Settings → Extensions → Enable `postgis`
+> - **AWS RDS:** Add `postgis` to your parameter group, or use `CREATE EXTENSION postgis;`
+> - **Self-hosted:** `sudo apt install postgresql-14-postgis-3 && psql -c 'CREATE EXTENSION postgis;'`
 
 ## Steps
 
@@ -53,12 +62,13 @@ Migration: OK
 
 ## Troubleshooting
 
-| Issue              | Cause                      | Fix                                        |
-| ------------------ | -------------------------- | ------------------------------------------ |
-| Connection refused | Firewall blocking          | Add VM IP to database trusted sources      |
-| SSL required       | Missing `?sslmode=require` | Add SSL mode to connection string          |
-| Auth failed        | Wrong credentials          | Verify username/password in DO/AWS console |
-| Database not found | DB not created             | Create `gravity` database manually         |
+| Issue                     | Cause                       | Fix                                                            |
+| ------------------------- | --------------------------- | -------------------------------------------------------------- |
+| Connection refused        | Firewall blocking           | Add VM IP to database trusted sources                          |
+| SSL required              | Missing `?sslmode=require`  | Add SSL mode to connection string                              |
+| Auth failed               | Wrong credentials           | Verify username/password in DO/AWS console                     |
+| Database not found        | DB not created              | Create `gravity` database manually                             |
+| **postgis not available** | **Extension not installed** | **Enable PostGIS in your DB provider's dashboard (see above)** |
 
 ## Creating Database Manually
 

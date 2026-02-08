@@ -19,6 +19,7 @@ Modular runbooks for deploying and managing Gravity Platform VMs.
 | Component      | Requirement                 | Notes                                                  |
 | -------------- | --------------------------- | ------------------------------------------------------ |
 | **PostgreSQL** | 14+                         | Customer-managed (DO Managed, AWS RDS, or self-hosted) |
+| **PostGIS**    | Required extension          | Enable in DB provider dashboard (Dictionary/spatial)   |
 | **Redis**      | 7+                          | Bundled for POC, customer-managed for Enterprise       |
 | **Domain**     | DNS A records               | Point to VM IP or Load Balancer IP                     |
 | **TLS**        | Caddy (auto) or customer LB | Caddy auto-provisions Let's Encrypt certs              |
