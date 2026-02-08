@@ -1,32 +1,37 @@
 ---
-# Test Connectivity and Ports
-# Verifies all services are reachable and ports are open
+# Test Connectivity — Full Platform Health Check
+# Checks infrastructure AND application-level functionality
 #
 # Usage:
 #   ansible-playbook -i inventory/production.yml playbooks/test-connectivity.yml
 
-- name: Test Connectivity and Ports
+- name: Test Connectivity — Full Platform Health Check
   hosts: all
   become: yes
 
   tasks:
-    - name: "[1/6] Check Docker is running"
+    # ── Infrastructure ──────────────────────────────────────────
+    - name: "[1/9] Check Docker is running"
       command: docker info
       register: docker_info
       ignore_errors: yes
 
-    - name: "[1/6] Docker status"
-      debug:
-        msg: "{{ 'Docker OK' if docker_info.rc == 0 else 'Docker NOT running' }}"
-
-    - name: "[2/6] Check running containers"
-      command: docker compose ps --format json
-      args:
-        chdir: /opt/gravity
-      register: containers
+    - name: "[2/9] Check container status"
+      shell: |
+        cd /opt/gravity
+        docker compose ps --format '{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.State{{ '}}' }} {{ '{{' }}.Status{{ '}}' }}' 2>/dev/null || echo "FAILED"
+      register: container_status
       ignore_errors: yes
 
-    - name: "[3/6] Test internal service ports"
+    - name: "[3/9] Check for restarting containers"
+      shell: |
+        cd /opt/gravity
+        docker compose ps --format '{{ '{{' }}.Name{{ '}}' }} {{ '{{' }}.State{{ '}}' }}' 2>/dev/null | grep -i restart || echo "NONE"
+      register: restarting_containers
+      ignore_errors: yes
+
+    # ── Ports ───────────────────────────────────────────────────
+    - name: "[4/9] Test internal service ports"
       wait_for:
         host: localhost
         port: "{{ item.port }}"
@@ -40,7 +45,8 @@
       register: port_checks
       ignore_errors: yes
 
-    - name: "[4/6] Test Redis connectivity (external)"
+    # ── External Dependencies ───────────────────────────────────
+    - name: "[5/9] Test Redis connectivity (external)"
       shell: |
         REDIS_HOST=$(grep '^REDIS_HOST=' /opt/gravity/.env 2>/dev/null | cut -d'=' -f2-)
         REDIS_PORT=$(grep '^REDIS_PORT=' /opt/gravity/.env 2>/dev/null | cut -d'=' -f2-)
@@ -51,7 +57,24 @@
       register: redis_check
       ignore_errors: yes
 
-    - name: "[5/6] Test service health endpoints"
+    - name: "[6/9] Test database connectivity"
+      shell: |
+        DB_URL=$(grep '^DATABASE_URL=' /opt/gravity/.env 2>/dev/null | cut -d'=' -f2-)
+        if [ -z "$DB_URL" ]; then
+          echo "DATABASE_URL not set"
+          exit 1
+        fi
+        # Extract host:port from postgresql://user:pass@host:port/db
+        DB_HOSTPORT=$(echo "$DB_URL" | sed -E 's|.*@([^/]+)/.*|\1|')
+        DB_HOST=$(echo "$DB_HOSTPORT" | cut -d: -f1)
+        DB_PORT=$(echo "$DB_HOSTPORT" | cut -d: -f2)
+        echo "host=${DB_HOST} port=${DB_PORT}"
+        timeout 5 bash -c "echo | nc -w 3 ${DB_HOST} ${DB_PORT}" >/dev/null 2>&1
+      register: db_check
+      ignore_errors: yes
+
+    # ── Health Endpoints ────────────────────────────────────────
+    - name: "[7/9] Test service health endpoints"
       uri:
         url: "http://localhost:{{ item.port }}/health"
         status_code: 200
@@ -64,7 +87,21 @@
       register: health_checks
       ignore_errors: yes
 
-    - name: "[6/6] Test external connectivity (if Caddy installed)"
+    # ── Application-Level Checks ────────────────────────────────
+    - name: "[8/9] Test API endpoints (actual data)"
+      shell: |
+        STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:{{ item.port }}{{ item.path }})
+        echo "$STATUS"
+        [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 300 ]
+      loop:
+        - { name: "GET /api/workflows", port: 4100, path: "/api/workflows" }
+        - { name: "GET /api/nodes", port: 4100, path: "/api/nodes" }
+        - { name: "GET /api/prompt-blocks", port: 4100, path: "/api/prompt-blocks" }
+      register: api_checks
+      ignore_errors: yes
+
+    # ── Caddy ───────────────────────────────────────────────────
+    - name: "[9/9] Test external connectivity (if Caddy installed)"
       wait_for:
         host: localhost
         port: "{{ item }}"
@@ -73,31 +110,59 @@
       register: caddy_ports
       ignore_errors: yes
 
+    # ── Grab logs from failing services ─────────────────────────
+    - name: "Collect server logs (last 30 lines)"
+      shell: cd /opt/gravity && docker compose logs --tail=30 server 2>&1
+      register: server_logs
+      ignore_errors: yes
+      when: api_checks.results | selectattr('failed') | list | length > 0
+
   post_tasks:
-    - name: "=== CONNECTIVITY TEST RESULTS ==="
+    - name: "=== PLATFORM HEALTH CHECK ==="
       debug:
         msg: |
           ============================================
-          CONNECTIVITY TEST RESULTS
+          PLATFORM HEALTH CHECK
           ============================================
           Host: {{ inventory_hostname }} ({{ ansible_host }})
 
+          ── Infrastructure ──
           Docker: {{ 'OK' if docker_info.rc == 0 else 'FAILED' }}
 
-          Service Ports:
+          Containers:
+          {% for line in container_status.stdout_lines %}
+            {{ line }}
+          {% endfor %}
+
+          Restarting: {{ restarting_containers.stdout | trim }}
+
+          ── Ports ──
           {% for result in port_checks.results %}
-            - {{ result.item.name }} ({{ result.item.port }}): {{ 'OK' if result.failed == false else 'CLOSED' }}
+            - {{ result.item.name }} ({{ result.item.port }}): {{ 'OK' if not result.failed else 'CLOSED' }}
           {% endfor %}
 
-          Redis (external): {{ 'REACHABLE' if redis_check.rc == 0 else 'UNREACHABLE' }}
+          ── External Dependencies ──
+          Redis: {{ 'REACHABLE' if redis_check.rc == 0 else 'UNREACHABLE' }}
             {{ redis_check.stdout_lines[0] | default('') }}
+          Database: {{ 'REACHABLE' if db_check.rc == 0 else 'UNREACHABLE' }}
+            {{ db_check.stdout_lines[0] | default('') }}
 
-          Health Endpoints:
+          ── Health Endpoints ──
           {% for result in health_checks.results %}
-            - {{ result.item.name }}: {{ 'OK' if result.failed == false else 'FAILED' }}
+            - {{ result.item.name }}: {{ 'OK' if not result.failed else 'FAILED' }}
           {% endfor %}
 
-          Caddy (external):
-            - Port 80: {{ 'OK' if caddy_ports.results[0].failed == false else 'CLOSED' }}
-            - Port 443: {{ 'OK' if caddy_ports.results[1].failed == false else 'CLOSED' }}
+          ── API Endpoints (actual data) ──
+          {% for result in api_checks.results %}
+            - {{ result.item.name }}: {{ 'HTTP ' + result.stdout | default('???') if not result.failed else 'FAILED (HTTP ' + result.stdout | default('???') + ')' }}
+          {% endfor %}
+
+          ── Caddy ──
+            - Port 80: {{ 'OK' if not caddy_ports.results[0].failed else 'CLOSED' }}
+            - Port 443: {{ 'OK' if not caddy_ports.results[1].failed else 'CLOSED' }}
           ============================================
+
+    - name: "=== SERVER LOGS (if API errors) ==="
+      debug:
+        msg: "{{ server_logs.stdout }}"
+      when: server_logs is defined and server_logs.stdout is defined
