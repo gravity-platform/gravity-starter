@@ -1,110 +1,115 @@
 ---
-# Deploy Customer Packages Playbook
-# Clones customer's git repo and deploys packages to VM
+# Deploy Customer Packages
+# Clones the customer's starter repo (set in production.yml) and builds packages on the server.
 #
 # Usage:
 #   ansible-playbook -i inventory/production.yml playbooks/deploy-packages.yml
 #
-# Required variables (in inventory or via -e):
-#   packages_repo   - Customer's git repo URL (e.g., https://github.com/customer/their-gravity.git)
+# Reads from production.yml:
+#   starter_repo    - Customer's git repo URL (required)
+#   starter_branch  - Branch to clone (default: main)
 #
-# Optional variables:
-#   packages_branch - Branch to clone (default: main)
-#   packages_token  - Git token for private repos (can also be in .env as PACKAGES_TOKEN)
+# Reads from ansible/files/.env:
+#   PACKAGES_TOKEN  - Git token for private repos (optional)
 
 - name: Deploy Customer Packages
   hosts: all
   become: yes
 
   vars:
-    packages_branch: "{{ packages_branch | default('main') }}"
     gravity_dir: /opt/gravity
 
   pre_tasks:
-    - name: "Validate packages_repo is set"
+    - name: "Validate starter_repo is set"
       fail:
         msg: |
-          packages_repo is required. Set it in inventory or pass via -e:
-          ansible-playbook playbooks/deploy-packages.yml -e "packages_repo=https://github.com/your-org/your-gravity.git"
-      when: packages_repo is not defined or packages_repo == ''
+          starter_repo is not set. Add it to your inventory (production.yml):
+            all:
+              vars:
+                starter_repo: "https://github.com/your-org/your-gravity.git"
+      when: starter_repo is not defined or starter_repo == ''
 
-    - name: "Check for PACKAGES_TOKEN in .env"
+    - name: "Read PACKAGES_TOKEN from .env"
       shell: grep '^PACKAGES_TOKEN=' {{ env_file | default('../files/.env') }} | cut -d= -f2
       register: env_packages_token
       delegate_to: localhost
       become: no
       changed_when: false
       ignore_errors: yes
-      when: packages_token is not defined
 
-    - name: "Set packages_token from .env if not provided"
+    - name: "Set packages_token"
       set_fact:
         packages_token: "{{ env_packages_token.stdout | default('') }}"
-      when: packages_token is not defined and env_packages_token.stdout is defined
 
   tasks:
-    - name: "[1/5] Install git"
+    - name: "[1/7] Install git"
       apt:
         name: git
         state: present
 
-    - name: "[2/5] Clone customer repo to temp directory"
+    - name: "[2/7] Clone {{ starter_repo }} ({{ starter_branch | default('main') }})"
       git:
-        repo: "{{ 'https://' + packages_token + '@' + (packages_repo | regex_replace('^https?://', '')) if packages_token else packages_repo }}"
+        repo: "{{ 'https://' + packages_token + '@' + (starter_repo | regex_replace('^https?://', '')) if packages_token else starter_repo }}"
         dest: /tmp/gravity-packages
-        version: "{{ packages_branch }}"
+        version: "{{ starter_branch | default('main') }}"
         force: yes
       no_log: "{{ packages_token | default('') != '' }}"
 
-    - name: "[3/5] Create packages directory"
-      file:
-        path: "{{ gravity_dir }}/packages"
-        state: directory
+    - name: "[3/7] Copy workspace config files"
+      copy:
+        src: "/tmp/gravity-packages/{{ item }}"
+        dest: "{{ gravity_dir }}/{{ item }}"
+        remote_src: yes
         owner: "{{ ansible_user }}"
-        mode: "0755"
+        mode: "0644"
+      loop:
+        - package.json
+        - turbo.json
+        - tsconfig.base.json
+      ignore_errors: yes
 
-    - name: "[3/5] Copy packages to gravity directory"
+    - name: "[4/7] Sync packages to server"
       shell: |
+        mkdir -p {{ gravity_dir }}/packages
         rsync -av --delete \
           --exclude='node_modules' \
-          --exclude='dist' \
           --exclude='.turbo' \
           /tmp/gravity-packages/packages/ {{ gravity_dir }}/packages/
-      register: rsync_result
 
-    - name: "[3/5] Packages synced"
-      debug:
-        msg: "Synced packages from {{ packages_repo }} (branch: {{ packages_branch }})"
-
-    - name: "[4/5] Check if design-system exists in repo"
-      stat:
-        path: /tmp/gravity-packages/apps/design-system
-      register: design_system_stat
-
-    - name: "[4/5] Create apps directory"
-      file:
-        path: "{{ gravity_dir }}/apps"
-        state: directory
-        owner: "{{ ansible_user }}"
-        mode: "0755"
-      when: design_system_stat.stat.exists
-
-    - name: "[4/5] Copy design-system"
+    - name: "[4/7] Sync design-system (if present)"
       shell: |
-        rsync -av --delete \
-          --exclude='node_modules' \
-          --exclude='dist' \
-          --exclude='.turbo' \
-          --exclude='.storybook-index' \
-          /tmp/gravity-packages/apps/design-system/ {{ gravity_dir }}/apps/design-system/
-      when: design_system_stat.stat.exists
+        if [ -d /tmp/gravity-packages/apps/design-system ]; then
+          mkdir -p {{ gravity_dir }}/apps
+          rsync -av --delete \
+            --exclude='node_modules' \
+            --exclude='.turbo' \
+            --exclude='.storybook-index' \
+            /tmp/gravity-packages/apps/design-system/ {{ gravity_dir }}/apps/design-system/
+          echo "design-system synced"
+        else
+          echo "no design-system in repo"
+        fi
+      register: ds_result
 
-    - name: "[5/5] Cleanup temp directory"
+    - name: "[5/7] Build packages"
+      shell: |
+        cd {{ gravity_dir }}
+        npm install --silent 2>&1
+        npm run build -w @gravity-platform/plugin-base 2>&1
+        npm run build --workspaces --if-present 2>&1
+        npm run gen:nodes 2>&1
+      register: build_result
+
+    - name: "[5/7] Build output"
+      debug:
+        msg: "{{ build_result.stdout_lines[-5:] | default(['Build completed']) }}"
+
+    - name: "[6/7] Cleanup"
       file:
         path: /tmp/gravity-packages
         state: absent
 
-    - name: "[5/5] Restart node-service to load new packages"
+    - name: "[7/7] Restart node-service"
       command: docker compose restart node-service
       args:
         chdir: "{{ gravity_dir }}"
@@ -115,14 +120,9 @@
       debug:
         msg: |
           ============================================
-          CUSTOMER PACKAGES DEPLOYED
+          PACKAGES DEPLOYED
           ============================================
-          Repo: {{ packages_repo }}
-          Branch: {{ packages_branch }}
-          
-          Deployed to:
-            - {{ gravity_dir }}/packages/
-            {{ '- ' + gravity_dir + '/apps/design-system/' if design_system_stat.stat.exists else '' }}
-          
-          node-service restarted: {{ 'OK' if restart_result.rc == 0 else 'FAILED (may not be running yet)' }}
+          Repo:   {{ starter_repo }} ({{ starter_branch | default('main') }})
+          Build:  {{ 'OK' if build_result.rc == 0 else 'FAILED' }}
+          Restart: {{ 'OK' if restart_result.rc == 0 else 'FAILED' }}
           ============================================
