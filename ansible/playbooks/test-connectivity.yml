@@ -88,7 +88,7 @@
       ignore_errors: yes
 
     # ── Application-Level Checks ────────────────────────────────
-    - name: "[8/11] Test API endpoints (read)"
+    - name: "[8/13] Test API endpoints (read)"
       shell: |
         RESPONSE=$(curl -s -w '\n%{http_code}' --max-time 10 http://localhost:{{ item.port }}{{ item.path }})
         STATUS=$(echo "$RESPONSE" | tail -1)
@@ -102,7 +102,7 @@
       register: api_checks
       ignore_errors: yes
 
-    - name: "[9/11] Test API write (POST workflow)"
+    - name: "[9/13] Test API write (POST workflow)"
       shell: |
         RESPONSE=$(curl -s -w '\n%{http_code}' --max-time 10 \
           -X POST http://localhost:4100/api/workflows \
@@ -114,7 +114,36 @@
       register: api_write_check
       ignore_errors: yes
 
-    - name: "[10/11] Check for errors in service logs"
+    - name: "[10/13] Check node-service plugins loaded"
+      shell: |
+        RESPONSE=$(curl -s --max-time 10 http://localhost:4102/plugins 2>/dev/null)
+        PLUGIN_COUNT=$(echo "$RESPONSE" | grep -o '"name"' | wc -l | tr -d ' ')
+        NODE_RESPONSE=$(curl -s --max-time 10 http://localhost:4102/nodes 2>/dev/null)
+        NODE_COUNT=$(echo "$NODE_RESPONSE" | grep -o '"type"' | wc -l | tr -d ' ')
+        echo "plugins=${PLUGIN_COUNT} nodes=${NODE_COUNT}"
+        if [ "$PLUGIN_COUNT" -eq 0 ] 2>/dev/null; then
+          echo "WARNING: No plugins loaded — run deploy.sh rebuild or gravity update"
+          exit 1
+        fi
+      register: plugin_check
+      ignore_errors: yes
+
+    - name: "[11/13] Check packages directory mounted"
+      shell: |
+        cd /opt/gravity
+        if docker compose exec -T node-service ls /app/packages 2>/dev/null | head -5; then
+          PKG_COUNT=$(docker compose exec -T node-service ls /app/packages 2>/dev/null | wc -l | tr -d ' ')
+          echo "packages_mounted=${PKG_COUNT}"
+          [ "$PKG_COUNT" -gt 0 ]
+        else
+          echo "packages_mounted=0"
+          echo "WARNING: No packages directory — run deploy.sh or gravity update"
+          exit 1
+        fi
+      register: packages_check
+      ignore_errors: yes
+
+    - name: "[12/13] Check for errors in service logs"
       shell: |
         cd /opt/gravity
         ERRORS=$(docker compose logs --tail=50 --since=5m 2>&1 | grep -iE 'error|fatal|panic|does not exist|ECONNREFUSED' | tail -10)
@@ -128,7 +157,7 @@
       ignore_errors: yes
 
     # ── Caddy ───────────────────────────────────────────────────
-    - name: "[11/11] Test external connectivity (if Caddy installed)"
+    - name: "[13/13] Test external connectivity (if Caddy installed)"
       wait_for:
         host: localhost
         port: "{{ item }}"
@@ -179,6 +208,12 @@
 
           ── API Write Test ──
             - POST /api/workflows: {{ api_write_check.stdout | default('???') if not api_write_check.failed else 'FAILED (' + api_write_check.stdout | default('???') + ')' }}
+
+          ── Plugins & Packages ──
+          Node-service: {{ plugin_check.stdout_lines[0] | default('(skipped)') }}
+          {{ plugin_check.stdout_lines[1] | default('') }}
+          Packages: {{ packages_check.stdout_lines[0] | default('(skipped)') }}
+          {{ packages_check.stdout_lines[1] | default('') }}
 
           ── Recent Errors in Logs ──
           {{ log_errors.stdout | default('(skipped)') }}
