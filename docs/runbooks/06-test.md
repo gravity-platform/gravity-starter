@@ -85,7 +85,12 @@ Database: REACHABLE
   - GET /api/prompt-blocks: HTTP 200
 
 ── API Write Test ──
-  - POST /api/workflows: HTTP 200
+  - POST /api/workflows: HTTP 201
+
+── Plugins & Packages ──
+Node-service: plugins=16 nodes=97
+Packages: design-system openai flow skills ...
+packages_mounted=16
 
 ── Recent Errors in Logs ──
 No recent errors

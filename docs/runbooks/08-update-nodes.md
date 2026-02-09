@@ -5,24 +5,38 @@ Update custom packages (nodes) and design-system components without touching the
 ## Overview
 
 Use this when you've:
+
 - Created or modified a package in `packages/`
 - Added or changed a component in `apps/design-system/storybook/components/`
 - Added or changed a template in `apps/design-system/storybook/templates/`
 
 This does **not** pull new Docker images or update the core platform. For a full update, use `gravity update`.
 
-## Prerequisites
+## Deploy to Server (via Ansible)
+
+After pushing changes to your starter repo:
+
+```bash
+ansible-playbook -i inventory/production.yml playbooks/deploy-packages.yml
+```
+
+This clones `starter_repo` (from `production.yml`), copies packages to the server, runs `npm install` + `npm run build` + `gen:nodes`, and restarts node-service.
+
+## Local Development
+
+### Prerequisites
 
 - [ ] Platform running (`gravity start` or `gravity dev`)
 - [ ] Node.js and npm installed
 
-## Quick Update
+### Quick Update
 
 ```bash
 ./gravity update nodes
 ```
 
 This will:
+
 1. Install any new dependencies
 2. Build `plugin-base` (dependency for all packages)
 3. Build all workspace packages
@@ -30,6 +44,7 @@ This will:
 5. Restart `node-service` to pick up changes
 
 Expected output:
+
 ```
   ═══ Updating Nodes ═══
 
@@ -62,6 +77,7 @@ npm run gen:nodes
 ```
 
 This scans `apps/design-system/storybook/components/` and `templates/`, then:
+
 - Generates workflow node definitions in `packages/design-system/src/`
 - Bundles React components into `packages/design-system/dist/components/`
 
@@ -101,13 +117,13 @@ apps/design-system/    → Components bundled into dist/components/*.js
 
 ## Troubleshooting
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Package not loading | Missing `dist/index.js` | Run `gravity update nodes` |
-| Component 404 | Bundle not generated | Run `npm run gen:nodes` then restart server |
-| "Cannot find module" in node-service logs | Old node-service image (<v1.8.4) | Run `gravity update` (full) to pull new images |
-| TypeScript errors during build | Missing dependency | Run `npm install` then retry |
-| gen:nodes fails | Storybook config issue | Check `apps/design-system/storybook/` for errors |
+| Issue                                     | Cause                            | Fix                                              |
+| ----------------------------------------- | -------------------------------- | ------------------------------------------------ |
+| Package not loading                       | Missing `dist/index.js`          | Run `gravity update nodes`                       |
+| Component 404                             | Bundle not generated             | Run `npm run gen:nodes` then restart server      |
+| "Cannot find module" in node-service logs | Old node-service image (<v1.8.4) | Run `gravity update` (full) to pull new images   |
+| TypeScript errors during build            | Missing dependency               | Run `npm install` then retry                     |
+| gen:nodes fails                           | Storybook config issue           | Check `apps/design-system/storybook/` for errors |
 
 ## Related
 

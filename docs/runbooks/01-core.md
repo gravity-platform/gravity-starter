@@ -79,15 +79,14 @@ cd ansible
 ansible-playbook -i inventory/production.yml playbooks/install.yml
 ```
 
-This installs **core platform only** (server, workflow, node-service, mcp-server, canvas) from DOCR.
+This installs Docker, Node.js, pulls DOCR images, and starts **core platform** (server, workflow, node-service, mcp-server, canvas).
 
-### 4. Deploy Customer Packages (Optional)
+### 4. Deploy Customer Packages
 
-If you have custom nodes or design system components:
+Clones your `starter_repo` (set in `production.yml`), builds packages on the server, and restarts node-service:
 
 ```bash
-ansible-playbook -i inventory/production.yml playbooks/deploy-packages.yml \
-  -e "packages_repo=https://github.com/your-org/your-gravity.git"
+ansible-playbook -i inventory/production.yml playbooks/deploy-packages.yml
 ```
 
 ### 5. Verify

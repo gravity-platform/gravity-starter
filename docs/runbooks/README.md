@@ -52,23 +52,26 @@ Modular runbooks for deploying and managing Gravity Platform VMs.
 ### POC (Single VM - All Services)
 
 ```bash
-# 1. Core services
+# 1. Core services (Docker, Node.js, DOCR images)
 ansible-playbook -i inventory/production.yml playbooks/install.yml
 
 # 2. Database tables (reads DATABASE_URL from ansible/files/.env)
 ansible-playbook -i inventory/production.yml playbooks/db-setup.yml
 
-# 3. AI model
+# 3. Customer packages (clones starter_repo, builds on server)
+ansible-playbook -i inventory/production.yml playbooks/deploy-packages.yml
+
+# 4. AI model
 ansible-playbook -i inventory/production.yml playbooks/install-umap.yml
 
-# 4. Security hardening
+# 5. Security hardening
 ansible-playbook -i inventory/production.yml playbooks/harden.yml
 
-# 5. TLS (optional - if no external LB)
+# 6. TLS (optional - if no external LB)
 ansible-playbook -i inventory/production.yml playbooks/install-caddy.yml \
   -e "domain=yourdomain.com"
 
-# 6. Verify
+# 7. Verify
 ansible-playbook -i inventory/production.yml playbooks/test-connectivity.yml
 ```
 
@@ -77,6 +80,7 @@ ansible-playbook -i inventory/production.yml playbooks/test-connectivity.yml
 ```bash
 ansible-playbook -i inventory/production.yml playbooks/install.yml -l app_vms
 ansible-playbook -i inventory/production.yml playbooks/db-setup.yml -l app_vms
+ansible-playbook -i inventory/production.yml playbooks/deploy-packages.yml -l app_vms
 ansible-playbook -i inventory/production.yml playbooks/harden.yml -l app_vms
 ansible-playbook -i inventory/production.yml playbooks/test-connectivity.yml -l app_vms
 ```
@@ -148,3 +152,4 @@ When `DOMAIN` is unset (local dev), Canvas falls back to `http://localhost:4100`
 - Ansible installed locally
 - DOCR token for pulling images
 - PostgreSQL instance provisioned (customer-managed)
+- `starter_repo` set in `production.yml` (your fork of gravity-starter)
