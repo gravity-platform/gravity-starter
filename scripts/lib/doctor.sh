@@ -101,9 +101,13 @@ cmd_doctor() {
   running_output=$(docker compose -f "$ROOT/docker-compose.yml" ps -a --format "{{.Name}}\t{{.Status}}" 2>/dev/null) || true
   if [ -n "$running_output" ]; then
     local total running created_doc
-    total=$(echo "$running_output" | wc -l | tr -d ' ')
-    running=$(echo "$running_output" | grep -ci "up" || echo "0")
-    created_doc=$(echo "$running_output" | grep -ci "created" || echo "0")
+    total=$(echo "$running_output" | wc -l | tr -d '[:space:]')
+    running=$(echo "$running_output" | grep -ci "up" || true)
+    running=$(echo "$running" | tr -d '[:space:]')
+    running=${running:-0}
+    created_doc=$(echo "$running_output" | grep -ci "created" || true)
+    created_doc=$(echo "$created_doc" | tr -d '[:space:]')
+    created_doc=${created_doc:-0}
     if [ "$running" -eq "$total" ] && [ "$total" -gt 0 ]; then
       ok "All $running services running"
     elif [ "$created_doc" -gt 0 ]; then
