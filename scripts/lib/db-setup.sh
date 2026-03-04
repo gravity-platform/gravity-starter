@@ -46,6 +46,7 @@ cmd_db_setup() {
           ['Credentials', () => db.createCredentialsTable ? db.createCredentialsTable() : Promise.resolve()],
           ['TokenUsage', () => db.createSimpleTokenUsageTable ? db.createSimpleTokenUsageTable() : Promise.resolve()],
           ['GravityMemory', () => db.createGravityMemoryTables ? db.createGravityMemoryTables() : Promise.resolve()],
+          ['Registry', () => db.createRegistryTables ? db.createRegistryTables() : Promise.resolve()],
         ];
         let ok = 0;
         for (const [name, fn] of steps) {
@@ -57,57 +58,7 @@ cmd_db_setup() {
           if (dict.createAllTables) await dict.createAllTables();
           console.log('  ✓ Dictionary'); ok++;
         } catch (e) { console.error('  ✗ Dictionary: ' + e.message); }
-
-        // Explicit column migrations — ensures columns exist regardless of build version
-        const { Pool: MigPool } = require('pg');
-        const migPool = new MigPool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-        const cols = [
-          { table: 'workflows', column: 'viewport', type: 'JSONB' },
-          { table: 'workflows', column: 'mcp_schema', type: 'JSONB' },
-          { table: 'workflows', column: 'memory_config', type: 'JSONB' },
-        ];
-        for (const c of cols) {
-          try {
-            await migPool.query('ALTER TABLE ' + c.table + ' ADD COLUMN IF NOT EXISTS ' + c.column + ' ' + c.type);
-          } catch (e) { /* column already exists — safe */ }
-        }
-        // Tables normally created by node-service at runtime — create them here so they exist before services start
-        await migPool.query(\`
-          CREATE TABLE IF NOT EXISTS node_definitions (
-            id VARCHAR(255) PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            category VARCHAR(100) NOT NULL,
-            color VARCHAR(50) NOT NULL,
-            logo_url TEXT,
-            definition JSONB NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          CREATE INDEX IF NOT EXISTS idx_node_definitions_category ON node_definitions(category);
-          CREATE INDEX IF NOT EXISTS idx_node_definitions_name ON node_definitions(name);
-        \`);
-        await migPool.query(\`
-          CREATE TABLE IF NOT EXISTS service_definitions (
-            id VARCHAR(255) PRIMARY KEY,
-            provider VARCHAR(255) NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            methods TEXT NOT NULL,
-            metadata TEXT,
-            source VARCHAR(50) NOT NULL DEFAULT 'node',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          CREATE INDEX IF NOT EXISTS idx_service_provider ON service_definitions(provider);
-          CREATE INDEX IF NOT EXISTS idx_service_source ON service_definitions(source);
-        \`);
-
-        await migPool.end();
-        console.log('  ✓ Column migrations');
-        console.log('  ✓ Runtime tables');
-
-        console.log('  Done: ' + (ok + 2) + ' table groups created');
+        console.log('  Done: ' + ok + ' table groups created');
         process.exit(0);
       })().catch(e => { console.error(e); process.exit(1); });
     " 2>&1 || {
@@ -153,6 +104,7 @@ cmd_db_setup() {
           ['Credentials', () => db.createCredentialsTable ? db.createCredentialsTable() : Promise.resolve()],
           ['TokenUsage', () => db.createSimpleTokenUsageTable ? db.createSimpleTokenUsageTable() : Promise.resolve()],
           ['GravityMemory', () => db.createGravityMemoryTables ? db.createGravityMemoryTables() : Promise.resolve()],
+          ['Registry', () => db.createRegistryTables ? db.createRegistryTables() : Promise.resolve()],
         ];
         let ok = 0;
         for (const [name, fn] of steps) {
@@ -164,58 +116,7 @@ cmd_db_setup() {
           if (dict.createAllTables) await dict.createAllTables();
           console.log('  ✓ Dictionary'); ok++;
         } catch (e) { console.error('  ✗ Dictionary: ' + e.message); }
-
-        // Explicit column migrations — ensures columns exist regardless of image version
-        const { Pool } = require('pg');
-        const migPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-        const cols = [
-          { table: 'workflows', column: 'viewport', type: 'JSONB' },
-          { table: 'workflows', column: 'mcp_schema', type: 'JSONB' },
-          { table: 'workflows', column: 'memory_config', type: 'JSONB' },
-        ];
-        for (const c of cols) {
-          try {
-            await migPool.query('ALTER TABLE ' + c.table + ' ADD COLUMN IF NOT EXISTS ' + c.column + ' ' + c.type);
-          } catch (e) { /* column already exists — safe */ }
-        }
-
-        // Tables normally created by node-service at runtime — create them here so they exist before services start
-        await migPool.query(\`
-          CREATE TABLE IF NOT EXISTS node_definitions (
-            id VARCHAR(255) PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            category VARCHAR(100) NOT NULL,
-            color VARCHAR(50) NOT NULL,
-            logo_url TEXT,
-            definition JSONB NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          CREATE INDEX IF NOT EXISTS idx_node_definitions_category ON node_definitions(category);
-          CREATE INDEX IF NOT EXISTS idx_node_definitions_name ON node_definitions(name);
-        \`);
-        await migPool.query(\`
-          CREATE TABLE IF NOT EXISTS service_definitions (
-            id VARCHAR(255) PRIMARY KEY,
-            provider VARCHAR(255) NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            description TEXT,
-            methods TEXT NOT NULL,
-            metadata TEXT,
-            source VARCHAR(50) NOT NULL DEFAULT 'node',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          CREATE INDEX IF NOT EXISTS idx_service_provider ON service_definitions(provider);
-          CREATE INDEX IF NOT EXISTS idx_service_source ON service_definitions(source);
-        \`);
-
-        await migPool.end();
-        console.log('  ✓ Column migrations');
-        console.log('  ✓ Runtime tables');
-
-        console.log('  Done: ' + (ok + 2) + ' table groups created');
+        console.log('  Done: ' + ok + ' table groups created');
         process.exit(0);
       })().catch(e => { console.error(e); process.exit(1); });
     " 2>&1 || {
