@@ -7,18 +7,6 @@ cmd_update() {
   echo ""
   timer_start
 
-  # Pre-flight: Docker must be running
-  if ! docker ps >/dev/null 2>&1; then
-    echo ""
-    fail "Docker engine is not running"
-    echo ""
-    echo -e "  Open ${BOLD}Docker Desktop${NC} and wait for it to fully start (whale icon stops animating)."
-    echo -e "  Then re-run:"
-    echo -e "    ${GREEN}./gravity update${NC}"
-    echo ""
-    exit 1
-  fi
-
   # Step 1: Code — pull from customer's fork
   printf "  ${DIM}●${NC} Pulling latest code..."
   local git_ok=true
@@ -183,18 +171,6 @@ cmd_update_nodes() {
   echo -e "  ${BOLD}Updating Nodes${NC}"
   echo ""
   timer_start
-
-  # Pre-flight: Docker must be running
-  if ! docker ps >/dev/null 2>&1; then
-    echo ""
-    fail "Docker engine is not running"
-    echo ""
-    echo -e "  Open ${BOLD}Docker Desktop${NC} and wait for it to fully start (whale icon stops animating)."
-    echo -e "  Then re-run:"
-    echo -e "    ${GREEN}./gravity update nodes${NC}"
-    echo ""
-    exit 1
-  fi
 
   # Step 1: Dependencies
   printf "  ${DIM}●${NC} Installing dependencies..."

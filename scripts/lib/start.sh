@@ -34,18 +34,6 @@ check_docker_file_sharing() {
 }
 
 cmd_start() {
-  # Pre-flight: Docker must be running
-  if ! docker ps >/dev/null 2>&1; then
-    echo ""
-    fail "Docker engine is not running"
-    echo ""
-    echo -e "  Open ${BOLD}Docker Desktop${NC} and wait for it to fully start (whale icon stops animating)."
-    echo -e "  Then re-run:"
-    echo -e "    ${GREEN}./gravity start${NC}"
-    echo ""
-    exit 1
-  fi
-
   # Login to registry if DOCR_TOKEN is set
   local docr_token
   docr_token=$(grep "^DOCR_TOKEN=" "$ROOT/.env" 2>/dev/null | cut -d'=' -f2-)
