@@ -14,7 +14,14 @@ cmd_db_setup() {
   fi
   ok "DATABASE_URL configured"
 
-  # Note: if your Postgres requires SSL, add ?sslmode=require to DATABASE_URL in .env
+  # Auto-add sslmode=prefer if not specified (works for both SSL and non-SSL Postgres)
+  if [[ "$db_url" != *"sslmode="* ]]; then
+    if [[ "$db_url" == *"?"* ]]; then
+      db_url="${db_url}&sslmode=prefer"
+    else
+      db_url="${db_url}?sslmode=prefer"
+    fi
+  fi
 
   # Detect environment: monorepo (local dev) vs starter (Docker)
   if [ -d "$ROOT/apps/workflow" ]; then

@@ -112,7 +112,7 @@ This single command does everything:
 
 > **The platform must be running first.** The migration code is bundled inside the workflow Docker image, so `gravity db-setup` executes inside that container.
 
-Create the required database tables. This is safe to re-run — it uses `IF NOT EXISTS` for everything:
+Runs all pending migrations and seeds the database. Safe to re-run — migrations are tracked and only applied once:
 
 ```bash
 gravity db-setup
@@ -222,7 +222,7 @@ gravity update           # Pull latest images and restart
 | Command                | Purpose                                             |
 | ---------------------- | --------------------------------------------------- |
 | `gravity init`         | Interactive setup wizard (first time)               |
-| `gravity db-setup`     | Create database tables (safe to re-run)             |
+| `gravity db-setup`     | Run database migrations + seed (safe to re-run)     |
 | `gravity start`        | Start the platform                                  |
 | `gravity stop`         | Stop the platform                                   |
 | `gravity status`       | Show service health                                 |
