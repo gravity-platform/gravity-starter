@@ -64,9 +64,21 @@ export async function generateImages(
       apiKey,
     });
 
-    const geminiConfig = {
+    // Build config - add system instruction for reference image enforcement when provided
+    const geminiConfig: any = {
       responseModalities: ["IMAGE", "TEXT"],
     };
+
+    if (config.referenceImageUrl) {
+      geminiConfig.systemInstruction = `You are an image generation assistant. A reference photo is provided ONLY as a likeness guide for facial identity.
+
+RULES — read carefully:
+1. The TEXT PROMPT is the primary creative direction. It defines the age, scene, clothing, pose, situation, and style. The prompt ALWAYS wins over the photo for these attributes.
+2. The reference photo provides ONLY the base facial identity — use it to capture the person's recognisable bone structure, eye shape, nose shape, and mouth shape.
+3. If the prompt says the person is older or younger than the photo, you MUST age or de-age the face accordingly while keeping the underlying facial identity recognisable.
+4. Do NOT copy the photo's lighting, background, clothing, hairstyle, expression, or age unless the prompt explicitly asks for it.
+5. Think of the photo as a casting reference — same actor, different role.`;
+    }
 
     // Build content parts
     const parts: any[] = [];
@@ -89,16 +101,11 @@ export async function generateImages(
       }
     }
 
-    // Build the final prompt - prepend reference image likeness instruction if image was added
+    // Build the final prompt with reference image enforcement
     let finalPrompt = config.prompt;
     if (config.referenceImageUrl && parts.length > 0 && parts[0].inlineData) {
-      const referenceInstruction = `CRITICAL - REFERENCE IMAGE PROVIDED: The attached reference image shows the EXACT person who must appear in the generated image. You MUST:
-1. Use the SAME face from the reference image - identical facial structure, eyes, nose, mouth
-2. Match the person's body type and build from the reference
-3. This is the same individual - do NOT create a different person
-4. Apply all other style/scene specifications from the prompt below to THIS person
-
-Generate an image of the person from the reference photo in the following context:\n\n`;
+      // Likeness-only instruction: photo is a casting reference, prompt is the creative direction
+      const referenceInstruction = `LIKENESS REFERENCE: The attached photo is a casting reference for the person's facial identity only. Use the same underlying bone structure, eye shape, nose, and mouth so the person is recognisable — but follow the prompt below for everything else including age, scene, clothing, expression, and style. The prompt is the creative director; the photo is just the casting sheet.\n\n`;
       finalPrompt = referenceInstruction + config.prompt;
       log.info("Reference image likeness instruction prepended to prompt");
     }

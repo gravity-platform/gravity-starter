@@ -30,12 +30,18 @@ function isGravityDB(connectionString: string): boolean {
 /**
  * Validate table exists and get its columns from information_schema
  */
-async function getTableColumns(pool: Pool, tableName: string): Promise<string[]> {
+async function getTableColumns(pool: Pool, tableName: string): Promise<{ names: string[]; arrayColumns: Set<string> }> {
   const result = await pool.query(
-    `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position`,
+    `SELECT column_name, data_type, udt_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 ORDER BY ordinal_position`,
     [tableName],
   );
-  return result.rows.map((r: any) => r.column_name);
+  const names = result.rows.map((r: any) => r.column_name);
+  const arrayColumns = new Set<string>(
+    result.rows
+      .filter((r: any) => r.data_type === "ARRAY" || r.udt_name?.startsWith("_"))
+      .map((r: any) => r.column_name),
+  );
+  return { names, arrayColumns };
 }
 
 /**
@@ -106,7 +112,7 @@ export async function executeInsert(params: InsertServiceParams): Promise<Postgr
 
   try {
     // Validate table exists
-    const validColumns = await getTableColumns(pool, tableName);
+    const { names: validColumns, arrayColumns } = await getTableColumns(pool, tableName);
     if (validColumns.length === 0) {
       throw new Error(`Table "${tableName}" does not exist or has no columns.`);
     }
@@ -183,9 +189,10 @@ export async function executeInsert(params: InsertServiceParams): Promise<Postgr
 
         for (const col of recordColumns) {
           const val = record[col];
-          // Serialize objects/arrays to JSON strings for JSONB columns
           if (val !== null && val !== undefined && typeof val === "object") {
-            values.push(JSON.stringify(val));
+            // Native PG ARRAY columns (text[], int[], etc.) must be passed as JS arrays.
+            // jsonb and plain object columns get JSON.stringify.
+            values.push(Array.isArray(val) && arrayColumns.has(col) ? val : JSON.stringify(val));
           } else {
             values.push(val !== undefined ? val : null);
           }

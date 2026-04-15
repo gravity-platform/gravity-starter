@@ -7,7 +7,7 @@ import { PoliceReportTemplate } from "../util/types";
 
 export function loadDefaultTemplate(): PoliceReportTemplate {
   return {
-    componentUrl: '/components/PoliceReport.js?v=1773586679185',
+    componentUrl: '/components/PoliceReport.js?v=1773906074462',
   };
 }
 

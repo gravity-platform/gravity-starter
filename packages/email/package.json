@@ -1,0 +1,33 @@
+{
+  "name": "@gravity-platform/email",
+  "version": "1.0.0",
+  "description": "Email nodes for GravityWorkflow — send emails via Microsoft 365 and other providers",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "gravity",
+    "workflow",
+    "email",
+    "smtp",
+    "microsoft365",
+    "nodemailer"
+  ],
+  "author": "GravityAI",
+  "license": "MIT",
+  "dependencies": {
+    "@gravity-platform/plugin-base": "*",
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.17",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@gravity-platform/plugin-base": "*"
+  }
+}

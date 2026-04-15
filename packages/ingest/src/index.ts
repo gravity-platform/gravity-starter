@@ -51,6 +51,26 @@ const plugin = createPlugin({
     const { ElevenLabsNode } = await import("./ElevenLabs/node");
     api.registerNode(ElevenLabsNode);
 
+    // Import and register SpatialIngest node
+    const { SpatialIngestNode } = await import("./SpatialIngest/node");
+    api.registerNode(SpatialIngestNode);
+
+    // Import and register ApolloPeople node
+    const { ApolloPeopleNode } = await import("./ApolloPeople/node");
+    api.registerNode(ApolloPeopleNode);
+
+    // Import and register ApolloCompany node
+    const { ApolloCompanyNode } = await import("./ApolloCompany/node");
+    api.registerNode(ApolloCompanyNode);
+
+    // Import and register ApolloPeopleEnrich node
+    const { ApolloPeopleEnrichNode } = await import("./ApolloPeopleEnrich/node");
+    api.registerNode(ApolloPeopleEnrichNode);
+
+    // Import and register ApolloCompanyEnrich node
+    const { ApolloCompanyEnrichNode } = await import("./ApolloCompanyEnrich/node");
+    api.registerNode(ApolloCompanyEnrichNode);
+
     // Import and register credentials
     const {
       SearchAPICredential,
@@ -60,6 +80,7 @@ const plugin = createPlugin({
       PlaidCredential,
       AbyssaleCredential,
       ElevenLabsCredential,
+      ApolloCredential,
     } = await import("./credentials");
     api.registerCredential(SearchAPICredential);
     api.registerCredential(ApifyCredential);
@@ -68,6 +89,7 @@ const plugin = createPlugin({
     api.registerCredential(PlaidCredential);
     api.registerCredential(AbyssaleCredential);
     api.registerCredential(ElevenLabsCredential);
+    api.registerCredential(ApolloCredential);
   },
 });
 

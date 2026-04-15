@@ -59,8 +59,10 @@ function buildRenderPage(componentUrl: string, props: Record<string, any>): stri
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: white; }
     #root { margin: 0; padding: 0; }
+    img { max-width: 100%; height: auto; image-rendering: auto; }
     @media print {
       @page { margin: 0; }
+      img { max-width: 100% !important; height: auto !important; }
     }
   </style>
 </head>
@@ -119,10 +121,20 @@ function buildRenderPage(componentUrl: string, props: Record<string, any>): stri
           }
         });
 
-        // Give styles time to apply, then signal ready
-        setTimeout(function() {
-          window.__RENDER_READY__ = true;
-        }, 300);
+        // Wait for all images to finish loading, then signal ready
+        var imgs = Array.from(document.images);
+        var imagePromises = imgs.map(function(img) {
+          if (img.complete) return Promise.resolve();
+          return new Promise(function(resolve) {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        });
+        Promise.all(imagePromises).then(function() {
+          setTimeout(function() {
+            window.__RENDER_READY__ = true;
+          }, 500);
+        });
       }, 500);
     })();
   </script>
@@ -167,6 +179,10 @@ export async function renderComponentToPdf(
   try {
     const page = await browser.newPage();
 
+    // Disable default navigation timeout — we control timeouts explicitly
+    page.setDefaultNavigationTimeout(0);
+    page.setDefaultTimeout(0);
+
     // Set viewport to match page size at 96 DPI
     const dims = PAGE_SIZES[pageSize] || PAGE_SIZES.letter;
     const widthPx = parseFloat(dims.width) * 96;
@@ -175,12 +191,12 @@ export async function renderComponentToPdf(
     await page.setViewport({
       width: Math.round(widthPx),
       height: Math.round(heightPx),
-      deviceScaleFactor: 1.5,
+      deviceScaleFactor: 1,
     });
 
     // Build and load the render page
     const html = buildRenderPage(fullComponentUrl, props);
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 });
 
     // Wait for the component to signal it's ready
     await page.waitForFunction("window.__RENDER_READY__ === true", {
@@ -188,7 +204,7 @@ export async function renderComponentToPdf(
     });
 
     // Additional settle time for fonts and complex layouts
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Generate PDF
     const isLandscape = orientation === "landscape";

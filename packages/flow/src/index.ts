@@ -41,6 +41,9 @@ const plugin = createPlugin({
 
     const { SuggestionsNode } = await import("./Suggestions");
     api.registerNode(SuggestionsNode);
+
+    const { SendObjectNode } = await import("./SendObject");
+    api.registerNode(SendObjectNode);
   },
 });
 

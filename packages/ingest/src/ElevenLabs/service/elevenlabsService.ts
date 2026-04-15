@@ -24,13 +24,62 @@ async function getApiKey(context: any): Promise<string> {
   return apiKey;
 }
 
-// Default voice IDs - ElevenLabs standard pre-made voices (available in all accounts)
-// These are the official IDs from ElevenLabs voice library
+// Premade voices - built into every ElevenLabs account, no creation needed, no limits
+const DETECTIVE_VOICE_ID = "pFZP5JQG7iQjIQuC4Bku"; // Female detective - always the interviewer, never used for suspects
+
+const PREMADE_MALE_VOICES = [
+  "onwK4e9ZLuTAKqWW03F9", // Daniel - deep, authoritative
+  "N2lVS1w4EtoT3dr4eOWO", // Liam
+  "IKne3meq5aSn9XLyUdCD", // Charlie
+  "TX3LPaxmHKxFdv7VOQHJ", // Liam (alt)
+  "JBFqnCBsd6RMkjVDRZzb", // George
+  "TxGEqnHWrfWFTfGW9XjX", // Josh
+  "29vD33N1CtxCmqQRPOHJ", // Drew
+];
+
+// Charlotte excluded — she is reserved exclusively for DETECTIVE
+const PREMADE_FEMALE_VOICES = [
+  "pNInz6obpgDQGcFmaJgB", // Nicole
+  "Xb7hH8MSUJpSbSDYk0k2", // Alice
+  "jBpfuIE2acCO8z3wKNLl", // Freya
+  "jsCqWAovK2LkecY7zXl4", // Dorothy
+  "z9fAnlkpzviPz146aGWa", // Glinda
+];
+
 const DEFAULT_VOICES = {
-  DETECTIVE: "onwK4e9ZLuTAKqWW03F9", // Daniel - deep, authoritative male
-  SUSPECT: "XB0fDUnXU5powFXDhCwa", // Charlotte - clear female
-  NARRATOR: "onwK4e9ZLuTAKqWW03F9", // Daniel - professional
+  DETECTIVE: DETECTIVE_VOICE_ID,
+  SUSPECT: PREMADE_FEMALE_VOICES[0],
+  NARRATOR: PREMADE_MALE_VOICES[0],
 };
+
+/**
+ * Hash a string to a stable integer (djb2)
+ */
+function hashString(str: string): number {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Pick a suspect voice deterministically based on characterId and gender.
+ * Female suspects draw from PREMADE_FEMALE_VOICES (5 voices, never Charlotte).
+ * Male suspects draw from PREMADE_MALE_VOICES (7 voices).
+ * Same characterId + gender always returns the same voice. No API calls, no limits.
+ */
+function pickVoice(characterId: string, gender: string): string {
+  const g = gender.toLowerCase().trim();
+  const isFemale = g === "female" || g === "f" || g === "woman";
+  const pool = isFemale ? PREMADE_FEMALE_VOICES : PREMADE_MALE_VOICES;
+  const index = hashString(characterId) % pool.length;
+  const voiceId = pool[index];
+  console.log(
+    `[ElevenLabs] Picked ${isFemale ? "female" : "male"} suspect voice for "${characterId}": ${voiceId} (index ${index}/${pool.length})`,
+  );
+  return voiceId;
+}
 
 /**
  * Parse dialogue script into segments by speaker
@@ -92,182 +141,23 @@ export function isDialogueScript(text: string): boolean {
   return /\[(DETECTIVE|SUSPECT|NARRATOR)\]:/i.test(text);
 }
 
-// Cache for generated voice IDs to avoid regenerating
-const voiceCache: Map<string, string> = new Map();
-
 /**
- * Search for an existing voice by name
- * GET /v2/voices?search=name
+ * Get voice ID - pick a premade voice deterministically from characterId.
+ * No API calls, no voice creation, no limits.
  */
-async function findVoiceByName(voiceName: string, apiKey: string): Promise<string | null> {
-  console.log(`[ElevenLabs] Searching for existing voice: "${voiceName}"`);
-
-  try {
-    // Use v2/voices with search parameter and category=generated for designed voices
-    const searchUrl = `https://api.elevenlabs.io/v2/voices?search=${encodeURIComponent(
-      voiceName
-    )}&category=generated&page_size=50`;
-    console.log(`[ElevenLabs] Search URL: ${searchUrl}`);
-
-    const response = await fetch(searchUrl, {
-      method: "GET",
-      headers: { "xi-api-key": apiKey },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`[ElevenLabs] Voice search failed (${response.status}): ${errorText}`);
-      return null;
-    }
-
-    const result = await response.json();
-    const voiceNames = result.voices?.map((v: any) => v.name) || [];
-    console.log(`[ElevenLabs] Found ${voiceNames.length} generated voices: ${voiceNames.join(", ") || "(none)"}`);
-
-    // Find exact match by name
-    const exactMatch = result.voices?.find((v: any) => v.name === voiceName);
-
-    if (exactMatch) {
-      console.log(`[ElevenLabs] ✓ Found voice "${voiceName}": ${exactMatch.voice_id}`);
-      return exactMatch.voice_id;
-    }
-
-    console.log(`[ElevenLabs] ✗ Voice "${voiceName}" not found in generated voices`);
-    return null;
-  } catch (error) {
-    console.error(`[ElevenLabs] Voice search error:`, error);
-    return null;
+function getVoiceId(speaker: "DETECTIVE" | "SUSPECT" | "NARRATOR", config: ElevenLabsConfig): string {
+  if (speaker === "DETECTIVE") {
+    return DETECTIVE_VOICE_ID;
   }
-}
-
-/**
- * Get or create a voice from a text prompt
- * 1. Search for existing voice by name
- * 2. If not found, design + save the voice
- * 3. Return permanent voice_id
- */
-async function getOrCreateVoice(voiceName: string, voicePrompt: string, apiKey: string): Promise<string> {
-  const cacheKey = voiceName;
-
-  // Always verify voice exists via API (cache may be stale if voice was deleted)
-  const existingVoiceId = await findVoiceByName(voiceName, apiKey);
-  if (existingVoiceId) {
-    console.log(`[ElevenLabs] Found existing voice "${voiceName}": ${existingVoiceId}`);
-    voiceCache.set(cacheKey, existingVoiceId);
-    return existingVoiceId;
+  if (speaker === "SUSPECT") {
+    const id = config.characterId || "suspect_default";
+    const gender = config.characterGender || "male";
+    console.log(
+      `[ElevenLabs] getVoiceId SUSPECT — characterId="${config.characterId}", characterGender="${config.characterGender}", resolved gender="${gender}"`,
+    );
+    return pickVoice(id, gender);
   }
-
-  // Voice not found - clear stale cache entry if present
-  if (voiceCache.has(cacheKey)) {
-    console.log(`[ElevenLabs] Clearing stale cache for deleted voice: ${voiceName}`);
-    voiceCache.delete(cacheKey);
-  }
-
-  // Step 2: Design a new voice preview
-  console.log(`[ElevenLabs] Creating new voice "${voiceName}" with prompt: "${voicePrompt.substring(0, 80)}..."`);
-
-  // Generate preview text that matches the voice character for better results
-  // Longer preview text produces more stable and expressive voices
-  const previewText = voiceName.startsWith("det_")
-    ? "I need you to walk me through exactly what happened that evening. Take your time, but I need every detail. Where were you, who did you see, and what time was it?"
-    : "Let me be perfectly clear about something. I've told you everything I know. I was exactly where I said I was, doing exactly what I said I was doing. Check with anyone who was there.";
-
-  const designResponse = await fetch(`${ELEVENLABS_API_BASE}/text-to-voice/design`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "xi-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      voice_description: voicePrompt,
-      model_id: "eleven_ttv_v3",
-      text: previewText,
-      guidance_scale: 7, // Higher = stricter prompt adherence (better for accents)
-      loudness: 0.5,
-    }),
-  });
-
-  if (!designResponse.ok) {
-    const errorText = await designResponse.text();
-    console.error(`[ElevenLabs] Voice Design failed (${designResponse.status}): ${errorText}`);
-    throw new Error(`Voice Design API error: ${errorText}`);
-  }
-
-  const designResult = await designResponse.json();
-  const generatedVoiceId = designResult.previews?.[0]?.generated_voice_id;
-
-  if (!generatedVoiceId) {
-    throw new Error("Voice Design API returned no generated_voice_id");
-  }
-
-  // Step 3: Save the voice preview to get a permanent voice_id
-  console.log(`[ElevenLabs] Saving voice preview as "${voiceName}"...`);
-
-  const saveResponse = await fetch(`${ELEVENLABS_API_BASE}/text-to-voice`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "xi-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      voice_name: voiceName,
-      voice_description: voicePrompt,
-      generated_voice_id: generatedVoiceId,
-    }),
-  });
-
-  if (!saveResponse.ok) {
-    const errorText = await saveResponse.text();
-    console.error(`[ElevenLabs] Save voice failed (${saveResponse.status}): ${errorText}`);
-    throw new Error(`Save voice API error: ${errorText}`);
-  }
-
-  const saveResult = await saveResponse.json();
-  const permanentVoiceId = saveResult.voice_id;
-
-  if (!permanentVoiceId) {
-    throw new Error("Save voice API returned no voice_id");
-  }
-
-  console.log(`[ElevenLabs] Created voice "${voiceName}" with ID: ${permanentVoiceId}`);
-  voiceCache.set(cacheKey, permanentVoiceId);
-
-  return permanentVoiceId;
-}
-
-/**
- * Get voice ID - look up or create voice, or use default
- * Voice names are based on config IDs (e.g., "sus_gavin") for reuse
- */
-async function getVoiceId(
-  speaker: "DETECTIVE" | "SUSPECT" | "NARRATOR",
-  config: ElevenLabsConfig,
-  apiKey: string
-): Promise<string> {
-  try {
-    if (speaker === "DETECTIVE") {
-      if (config.detectiveVoicePrompt) {
-        // Use detectiveId if provided, otherwise generate a name
-        const voiceName = config.detectiveId || `detective_${Date.now()}`;
-        return await getOrCreateVoice(voiceName, config.detectiveVoicePrompt, apiKey);
-      }
-      return DEFAULT_VOICES.DETECTIVE;
-    }
-    if (speaker === "SUSPECT") {
-      if (config.characterVoicePrompt) {
-        // Use characterId if provided, otherwise generate a name
-        const voiceName = config.characterId || `character_${Date.now()}`;
-        return await getOrCreateVoice(voiceName, config.characterVoicePrompt, apiKey);
-      }
-      return DEFAULT_VOICES.SUSPECT;
-    }
-    return DEFAULT_VOICES.NARRATOR;
-  } catch (error) {
-    console.error(`[ElevenLabs] Voice creation failed for ${speaker}, using default:`, error);
-    if (speaker === "DETECTIVE") return DEFAULT_VOICES.DETECTIVE;
-    if (speaker === "SUSPECT") return DEFAULT_VOICES.SUSPECT;
-    return DEFAULT_VOICES.NARRATOR;
-  }
+  return DEFAULT_VOICES.NARRATOR;
 }
 
 /**
@@ -277,16 +167,19 @@ async function getVoiceId(
 async function generateDialogueV3(
   segments: DialogueSegment[],
   apiKey: string,
-  config: ElevenLabsConfig
+  config: ElevenLabsConfig,
 ): Promise<ArrayBuffer> {
   // Get voice IDs (may generate from prompts)
-  const detectiveVoiceId = await getVoiceId("DETECTIVE", config, apiKey);
-  const suspectVoiceId = await getVoiceId("SUSPECT", config, apiKey);
+  const detectiveVoiceId = getVoiceId("DETECTIVE", config);
+  const suspectVoiceId = getVoiceId("SUSPECT", config);
+
+  const narratorVoiceId = DEFAULT_VOICES.NARRATOR;
 
   // Build inputs array for Text to Dialogue API
   const inputs = segments.map((seg) => ({
     text: seg.text,
-    voice_id: seg.speaker === "DETECTIVE" ? detectiveVoiceId : suspectVoiceId,
+    voice_id:
+      seg.speaker === "DETECTIVE" ? detectiveVoiceId : seg.speaker === "SUSPECT" ? suspectVoiceId : narratorVoiceId,
   }));
 
   console.log(`[ElevenLabs] Text to Dialogue API: ${inputs.length} segments`);
@@ -301,7 +194,7 @@ async function generateDialogueV3(
       inputs,
       model_id: "eleven_v3",
       settings: {
-        stability: [0.0, 0.5, 1.0].includes(config.stability ?? 0) ? config.stability ?? 0 : 0.0,
+        stability: [0.0, 0.5, 1.0].includes(config.stability ?? 0) ? (config.stability ?? 0) : 0.0,
       },
     }),
   });
@@ -322,7 +215,7 @@ async function generateSpeechV3(
   text: string,
   voiceId: string,
   apiKey: string,
-  config: ElevenLabsConfig
+  config: ElevenLabsConfig,
 ): Promise<ArrayBuffer> {
   if (!text.trim()) {
     return new ArrayBuffer(0);
@@ -338,7 +231,7 @@ async function generateSpeechV3(
       text: text.trim(),
       model_id: "eleven_v3",
       voice_settings: {
-        stability: [0.0, 0.5, 1.0].includes(config.stability ?? 0) ? config.stability ?? 0 : 0.0,
+        stability: [0.0, 0.5, 1.0].includes(config.stability ?? 0) ? (config.stability ?? 0) : 0.0,
       },
     }),
   });
@@ -373,7 +266,7 @@ function concatenateAudioBuffers(buffers: ArrayBuffer[]): ArrayBuffer {
  */
 export async function generateTTS(
   config: ElevenLabsConfig,
-  context: any
+  context: any,
 ): Promise<{
   audioBase64: string;
   format: string;
@@ -404,7 +297,7 @@ export async function generateTTS(
         const audioBuffers: ArrayBuffer[] = [];
 
         for (const segment of segments) {
-          const voiceId = await getVoiceId(segment.speaker, config, apiKey);
+          const voiceId = getVoiceId(segment.speaker, config);
           console.log(`[ElevenLabs] Generating v3 segment: ${segment.speaker}`);
           const segmentAudio = await generateSpeechV3(segment.text, voiceId, apiKey, config);
           audioBuffers.push(segmentAudio);

@@ -1,0 +1,31 @@
+{
+  "name": "@gravity-platform/airtable",
+  "version": "1.0.0",
+  "description": "Airtable nodes for GravityWorkflow — fetch and insert records",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "gravity",
+    "workflow",
+    "airtable",
+    "database",
+    "fetch",
+    "insert"
+  ],
+  "author": "GravityAI",
+  "license": "MIT",
+  "dependencies": {
+    "@gravity-platform/plugin-base": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "@gravity-platform/plugin-base": "*"
+  }
+}

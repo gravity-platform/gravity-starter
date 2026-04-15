@@ -263,6 +263,46 @@ gravity logs server    # Check specific service logs
 gravity logs workflow
 ```
 
+### Can't reach database server at 127.0.0.1
+
+If you're using a **local Postgres** instance and see `Can't reach database server at 127.0.0.1:5432`, this is because `localhost` inside a Docker container refers to the container itself — not your host machine.
+
+Use `host.docker.internal` instead of `localhost` in your `DATABASE_URL`:
+
+```bash
+# ❌ Won't work from inside Docker
+DATABASE_URL=postgresql://postgres:password@localhost:5432/gravity
+
+# ✅ Correct for local Postgres
+DATABASE_URL=postgresql://postgres:password@host.docker.internal:5432/gravity
+```
+
+> `host.docker.internal` is Docker Desktop's built-in DNS name that resolves to your Mac/Windows host. It is not needed when using a remote managed database (DigitalOcean, Supabase, etc.).
+
+### `extension "vector" is not available` during db-setup
+
+The `pgvector` extension must be installed in your local Postgres before running `gravity db-setup`. It is pre-installed on managed databases (DigitalOcean Postgres, Supabase) but not on a standard local Postgres.
+
+**Homebrew (Mac):**
+
+```bash
+brew install pgvector
+```
+
+**Ubuntu/Debian:**
+
+```bash
+sudo apt install postgresql-16-pgvector   # replace 16 with your PG version
+```
+
+**Docker Postgres image:** Use the `pgvector/pgvector` image instead of plain `postgres`:
+
+```yaml
+image: pgvector/pgvector:pg16 # pg15, pg16, or pg17
+```
+
+After installing, restart Postgres and re-run `gravity db-setup`.
+
 ### Redis connection refused
 
 For local development, start Redis with Docker:

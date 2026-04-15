@@ -53,9 +53,13 @@ export function createNodeDefinition(): EnhancedNodeDefinition {
           type: "string",
           title: "Model",
           description: "Select the Gemini model to use",
-          enum: ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"],
-          enumNames: ["Gemini 2.5 Flash Image (Nano Banana)", "Gemini 3 Pro (Nano Banana Pro)"],
-          default: "gemini-2.5-flash-image",
+          enum: ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"],
+          enumNames: [
+            "Gemini 3.1 Flash Image (Best for character consistency)",
+            "Gemini 3 Pro (Nano Banana Pro)",
+            "Gemini 2.5 Flash Image (Nano Banana)",
+          ],
+          default: "gemini-3.1-flash-image-preview",
         },
         prompt: {
           type: "string",

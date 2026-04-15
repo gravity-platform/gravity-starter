@@ -7,7 +7,7 @@ import { ForensicsReportTemplate } from "../util/types";
 
 export function loadDefaultTemplate(): ForensicsReportTemplate {
   return {
-    componentUrl: '/components/ForensicsReport.js?v=1773586679092',
+    componentUrl: '/components/ForensicsReport.js?v=1773906074376',
   };
 }
 

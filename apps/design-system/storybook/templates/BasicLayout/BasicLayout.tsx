@@ -12,7 +12,7 @@ export default function BasicLayout(props: BasicLayoutProps) {
   const { client, autoScroll = true } = props;
 
   const history = client.history.entries;
-  useStreamingState(history);
+  const isStreaming = useStreamingState(history);
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,17 +43,34 @@ export default function BasicLayout(props: BasicLayoutProps) {
   return (
     <div ref={containerRef} className={styles.container}>
       <div className={styles.content}>
-        {history.map((entry) => {
-          if (entry.type !== "assistant_response") return null;
+        {history.length === 0 ? (
+          <div className={styles.emptyState}>
+            <h1 className={styles.emptyTitle}>Gravity AI</h1>
+            <p className={styles.emptySubtitle}>How can I help you today?</p>
+          </div>
+        ) : (
+          history.map((entry) => {
+            if (entry.type !== "assistant_response") return null;
 
-          const { streamingState, components } = entry;
+            const { streamingState, components } = entry;
 
-          return components.map((component) => {
-            if (!component.Component) return null;
+            return (
+              <React.Fragment key={entry.id}>
+                {components.length > 0
+                  ? components.map((component) => {
+                      if (!component.Component) return null;
 
-            return <div key={component.id}>{renderComponent(component, { streamingState }, client?.openFocus)}</div>;
-          });
-        })}
+                      return (
+                        <div key={component.id}>
+                          {renderComponent(component, { streamingState }, client?.openFocus)}
+                        </div>
+                      );
+                    })
+                  : streamingState === "streaming" && <div className={styles.loadingState}>Thinking...</div>}
+              </React.Fragment>
+            );
+          })
+        )}
         <div ref={endRef} />
       </div>
     </div>

@@ -1,11 +1,9 @@
 /* BasicLayout - Minimal vertical stack of components */
-@import '../../styles/index.css';
+@import "../../styles/index.css";
 
 .container {
   position: relative;
-  height: 100%;
   width: 100%;
-  overflow-y: auto;
   background-color: var(--color-gray-50);
 }
 
@@ -18,4 +16,32 @@
 
 .content > * + * {
   margin-top: var(--spacing-4);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-16) var(--spacing-4);
+  text-align: center;
+}
+
+.emptyTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin: 0 0 var(--spacing-2) 0;
+}
+
+.emptySubtitle {
+  font-size: 1rem;
+  color: var(--color-gray-500);
+  margin: 0;
+}
+
+.loadingState {
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+  padding: var(--spacing-2) 0;
 }

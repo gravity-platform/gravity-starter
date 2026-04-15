@@ -45,30 +45,18 @@ function createNodeDefinition(): EnhancedNodeDefinition {
         characterId: {
           type: "string",
           title: "Character ID",
-          description: "Unique ID for character/suspect voice (e.g., 'sus_gavin'). Reuses existing voice if found.",
-          default: "",
-          "ui:field": "template",
-        },
-        detectiveId: {
-          type: "string",
-          title: "Detective ID",
-          description: "Unique ID for detective voice (e.g., 'det_smith'). Reuses existing voice if found.",
-          default: "",
-          "ui:field": "template",
-        },
-        characterVoicePrompt: {
-          type: "string",
-          title: "Character Voice Prompt",
           description:
-            "Describe the character/suspect's voice (e.g. '41-year-old man, authoritative, polished, measured pace'). Uses Voice Design API.",
+            "Unique ID for the suspect (e.g., 'sus_claire'). Combined with Character Gender to deterministically pick a voice.",
           default: "",
           "ui:field": "template",
         },
-        detectiveVoicePrompt: {
+        characterGender: {
           type: "string",
-          title: "Detective Voice Prompt",
-          description: "Describe the detective's voice. Leave empty for default professional male voice.",
-          default: "",
+          title: "Character Gender",
+          description: "Gender of the suspect/character. Routes to correct voice pool.",
+          enum: ["male", "female"],
+          enumNames: ["Male", "Female"],
+          default: "male",
           "ui:field": "template",
         },
         stability: {
@@ -77,13 +65,6 @@ function createNodeDefinition(): EnhancedNodeDefinition {
           description: "0.0=Creative, 0.5=Natural, 1.0=Robust (only these 3 values allowed)",
           default: 0.0,
           enum: [0.0, 0.5, 1.0],
-        },
-        deleteVoiceAfterUse: {
-          type: "boolean",
-          title: "Delete Voice After Use",
-          description:
-            "Delete generated voices after audio is created (saves account storage, but voice won't be reusable).",
-          default: false,
         },
       },
       required: ["text"],

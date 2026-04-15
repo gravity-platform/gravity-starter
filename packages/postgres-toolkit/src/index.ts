@@ -19,6 +19,10 @@ const plugin = createPlugin({
     // Register PostgresInsert node
     const { PostgresInsertNode } = await import("./PostgresInsert/node");
     api.registerNode(PostgresInsertNode);
+
+    // Register PostgresFetch node
+    const { PostgresFetchNode } = await import("./PostgresFetch/node");
+    api.registerNode(PostgresFetchNode);
   },
 });
 
