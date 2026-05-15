@@ -71,10 +71,28 @@ cmd_update() {
   # Step 3: Build packages (requires Node.js — installed by install.yml)
   local build_log
   build_log=$(mktemp)
+
+  # Only run npm install if package-lock.json changed or node_modules missing
+  local need_install=false
+  if [ ! -d "$ROOT/node_modules" ]; then
+    need_install=true
+  elif [ -f "$ROOT/.package-lock.hash" ]; then
+    local old_hash=$(cat "$ROOT/.package-lock.hash" 2>/dev/null || echo "")
+    local new_hash=$(md5 -q "$ROOT/package-lock.json" 2>/dev/null || md5sum "$ROOT/package-lock.json" 2>/dev/null | cut -d' ' -f1 || echo "new")
+    [ "$old_hash" != "$new_hash" ] && need_install=true
+  else
+    need_install=true
+  fi
+
   (
     cd "$ROOT"
-    npm install --silent >/dev/null 2>&1 || true
-    npm run build -w @gravity-platform/plugin-base >> "$build_log" 2>&1 || true
+    if $need_install; then
+      npm install --silent >/dev/null 2>&1 || true
+      # Save hash for next run
+      md5 -q "$ROOT/package-lock.json" 2>/dev/null > "$ROOT/.package-lock.hash" || \
+      md5sum "$ROOT/package-lock.json" 2>/dev/null | cut -d' ' -f1 > "$ROOT/.package-lock.hash" || true
+    fi
+    # Turbo handles build dependencies, no need to build plugin-base separately
     npm run build --workspaces --if-present >> "$build_log" 2>&1 || true
     npm run gen:nodes >> "$build_log" 2>&1 || true
   ) &
