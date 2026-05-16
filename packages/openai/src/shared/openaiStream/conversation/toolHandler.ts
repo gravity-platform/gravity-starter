@@ -15,7 +15,8 @@ const DATA_TOOLS = [
   "readSkill", // Read skill instructions
   "readSkillFile", // Read skill files
   "getActiveMCPs", // Get available MCPs
-  "recallUser", // User memory - returns evidence for LLM to use
+  "memory", // User memory - returns recent observations
+  "queryMemory", // User memory - search observations by topic
   "readNotes", // Agent memory - returns scratchpad notes
   "writeNote", // Agent memory - writes a note, returns confirmation
   "archiveTask", // Agent memory - archives task, returns confirmation
