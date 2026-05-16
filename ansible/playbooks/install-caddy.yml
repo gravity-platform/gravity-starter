@@ -124,6 +124,7 @@
             - {% if caddy_behind_lb %}http{% else %}https{% endif %}://{{ caddy_domain }} -> Canvas (port 3001)
             - {% if caddy_behind_lb %}http{% else %}https{% endif %}://api.{{ caddy_domain }} -> API Server (port 4100)
             - {% if caddy_behind_lb %}http{% else %}https{% endif %}://mcp.{{ caddy_domain }} -> MCP Server (port 4103)
+            - {% if caddy_behind_lb %}http{% else %}https{% endif %}://memory.{{ caddy_domain }} -> Memory Server (port 4104)
           {% if caddy_include_umap %}
             - {% if caddy_behind_lb %}http{% else %}https{% endif %}://umap.{{ caddy_domain }} -> UMAP Service (port 5001)
           {% endif %}

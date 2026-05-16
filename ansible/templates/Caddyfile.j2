@@ -20,7 +20,12 @@
     handle @mcp {
         reverse_proxy localhost:4103
     }
-    
+
+    @memory host memory.{{ caddy_domain }}
+    handle @memory {
+        reverse_proxy localhost:4104
+    }
+
 {% if caddy_include_umap %}
     @umap host umap.{{ caddy_domain }}
     handle @umap {
@@ -44,6 +49,11 @@ api.{{ caddy_domain }} {
 # MCP Server (OpenAI integration)
 mcp.{{ caddy_domain }} {
     reverse_proxy localhost:4103
+}
+
+# Memory Server
+memory.{{ caddy_domain }} {
+    reverse_proxy localhost:4104
 }
 
 {% if caddy_include_umap %}
