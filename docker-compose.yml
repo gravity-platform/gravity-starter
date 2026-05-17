@@ -161,6 +161,7 @@ services:
       - REDIS_NAMESPACE=${REDIS_NAMESPACE}
       - AUTH_ISSUER=${AUTH_ISSUER}
       - AUTH_AUDIENCE=${AUTH_AUDIENCE}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - WORKFLOW_SERVICE_URL=http://workflow:4101
     labels:
       - "com.docker.compose.service=memory"
