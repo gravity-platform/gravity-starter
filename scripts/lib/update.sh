@@ -34,13 +34,25 @@ cmd_update() {
     ok "Code updated"
     rm -f "$git_log"
   else
-    warn "Code update failed — continuing"
+    warn "Code update failed — attempting recovery"
     local git_err
     git_err=$(cat "$git_log" 2>/dev/null | head -5)
     if [ -n "$git_err" ]; then
       echo -e "  ${DIM}Reason: $git_err${NC}"
     fi
     rm -f "$git_log"
+
+    # Recovery: force-sync when git is broken
+    printf "  ${DIM}●${NC} Forcing sync with remote..."
+    (
+      cd "$ROOT"
+      git fetch origin >/dev/null 2>&1 || true
+      local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+      git reset --hard origin/$branch >/dev/null 2>&1 || true
+      git clean -fd >/dev/null 2>&1 || true
+    )
+    printf "\r\033[2K"
+    ok "Forced sync completed"
   fi
 
   # Safety: restore production.yml from example if missing
